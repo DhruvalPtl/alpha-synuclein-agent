@@ -83,9 +83,9 @@ class TeeLogger:
         # Write a session-start separator to master log
         self._append_to_file(
             self._master_log_path,
-            f"\n{'═' * 80}\n"
+            f"\n{'=' * 80}\n"
             f"  SESSION START  {self._now()}\n"
-            f"{'═' * 80}\n",
+            f"{'=' * 80}\n",
         )
 
         self._initialized = True

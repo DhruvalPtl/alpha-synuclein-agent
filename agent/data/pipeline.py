@@ -42,6 +42,7 @@ from typing import Optional, Tuple, Dict
 from sklearn.model_selection import StratifiedShuffleSplit
 
 from agent.data import features as F
+from agent.data.loader import load_raw_csv
 
 # ── Label vocabulary ──────────────────────────────────────────────────────────
 LABEL_MAP: Dict[int, str] = {
@@ -123,6 +124,23 @@ class DataPipeline:
             label_int     int   {0,1,2,3}
             label_str     str   {"No","Low","Medium","High"}
         """
+        # ── Try dedicated loader first (handles the preamble format) ──────────
+        try:
+            df_out = load_raw_csv(csv_path)
+            # Fit concentration range
+            import math
+            valid_conc = df_out["concentration"].replace(0, None).dropna()
+            if len(valid_conc) > 0:
+                log_vals           = [math.log10(v) for v in valid_conc]
+                self._conc_log_min = float(min(log_vals))
+                self._conc_log_max = float(max(log_vals))
+                if abs(self._conc_log_max - self._conc_log_min) < 1e-9:
+                    self._conc_log_min -= 1.0
+                    self._conc_log_max += 1.0
+            return df_out
+        except Exception:
+            pass   # fall through to generic parser
+
         df_raw = pd.read_csv(csv_path)
         df_raw.columns = [str(c).strip() for c in df_raw.columns]
 
@@ -327,16 +345,16 @@ class DataPipeline:
         _HASH_FILE.parent.mkdir(parents=True, exist_ok=True)
         _HASH_FILE.write_text(f"{digest}  {path.name}\n", encoding="utf-8")
 
-        print("═" * 60)
-        print("  ███ MATHEMATICAL WALL SEALED ███")
-        print("═" * 60)
+        print("=" * 60)
+        print("  ### MATHEMATICAL WALL SEALED ###")
+        print("=" * 60)
         print(f"  HASH : {digest}")
         print(f"  FILE : {path.resolve()}")
         print(f"  LOCK : {_HASH_FILE.resolve()}")
-        print("═" * 60)
+        print("=" * 60)
         print("  Test set is now LOCKED.")
         print("  Never load outside eval_final.py")
-        print("═" * 60)
+        print("=" * 60)
 
         return digest
 
@@ -364,17 +382,17 @@ class DataPipeline:
         current_digest = self._sha256(path)
 
         if current_digest == sealed_digest:
-            print("═" * 60)
-            print("  ✓  WALL INTACT — hashes match")
+            print("=" * 60)
+            print("  [OK] WALL INTACT -- hashes match")
             print(f"  HASH : {current_digest}")
-            print("═" * 60)
+            print("=" * 60)
             return True
         else:
-            print("═" * 60)
-            print("  ✗  WALL BREACH DETECTED — hashes differ!")
+            print("=" * 60)
+            print("  [!!] WALL BREACH DETECTED -- hashes differ!")
             print(f"  SEALED  : {sealed_digest}")
             print(f"  CURRENT : {current_digest}")
-            print("═" * 60)
+            print("=" * 60)
             return False
 
     # ── 6. Save splits ────────────────────────────────────────────────────────
