@@ -1,0 +1,55 @@
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data files (large/sensitive)
+*.pkl
+*.h5
+*.hdf5
+data/raw/
+data/interim/
+data/processed/
+
+# Logs
+logs/
+*.log
+
+# Model checkpoints
+checkpoints/
+models/saved/
+
+# API keys / credentials
+secrets.json
+credentials.json

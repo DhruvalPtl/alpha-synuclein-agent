@@ -1,0 +1,18 @@
+# Core scientific stack
+numpy
+pandas
+scipy
+matplotlib
+seaborn
+
+# Bioinformatics / ML
+scikit-learn
+biopython
+
+# Notebook support
+jupyter
+ipykernel
+
+# Utilities
+tqdm
+python-dotenv
