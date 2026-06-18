@@ -1,18 +1,37 @@
-# Core scientific stack
-numpy
+# ── Agent framework ───────────────────────────────────────────────────────────
+smolagents[all]
+litellm
+
+# ── Deep learning ─────────────────────────────────────────────────────────────
+torch
+torchvision
+transformers
+
+# ── Classical ML ──────────────────────────────────────────────────────────────
+scikit-learn
+xgboost
+lightgbm
+
+# ── Data processing ───────────────────────────────────────────────────────────
 pandas
+numpy
 scipy
+
+# ── Visualisation ─────────────────────────────────────────────────────────────
 matplotlib
 seaborn
+plotly
 
-# Bioinformatics / ML
-scikit-learn
-biopython
+# ── Web / search tools ────────────────────────────────────────────────────────
+duckduckgo-search
+arxiv
+requests
 
-# Notebook support
-jupyter
-ipykernel
-
-# Utilities
-tqdm
+# ── Config / utilities ────────────────────────────────────────────────────────
 python-dotenv
+pyyaml
+rich
+
+# ── Notebook ──────────────────────────────────────────────────────────────────
+jupyter
+ipywidgets

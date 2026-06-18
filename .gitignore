@@ -1,55 +1,27 @@
-# Virtual Environments
+# ── Serialised model artefacts ────────────────────────────────────────────────
+*.pkl
+*.pt
+*.pth
+*.ckpt
+
+# ── Logs (never commit raw logs) ──────────────────────────────────────────────
+master_log/master_terminal.log
+
+# ── Python cache ─────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Environment files (actual values, not the template) ──────────────────────
+.env
+
+# ── Jupyter checkpoints ───────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Experiment binary artefacts ───────────────────────────────────────────────
+experiments/*/artifacts/
+
+# ── Virtual environment ───────────────────────────────────────────────────────
 .venv/
 venv/
 env/
-ENV/
-
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.egg-info/
-dist/
-build/
-*.egg
-.eggs/
-
-# Jupyter Notebooks
-.ipynb_checkpoints/
-
-# Environment Variables
-.env
-.env.*
-!.env.example
-
-# IDE / Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# OS
-.DS_Store
-Thumbs.db
-desktop.ini
-
-# Data files (large/sensitive)
-*.pkl
-*.h5
-*.hdf5
-data/raw/
-data/interim/
-data/processed/
-
-# Logs
-logs/
-*.log
-
-# Model checkpoints
-checkpoints/
-models/saved/
-
-# API keys / credentials
-secrets.json
-credentials.json
