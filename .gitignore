@@ -9,8 +9,17 @@ experiments/*/artifacts/*.pkl
 experiments/*/artifacts/*.pt
 experiments/*/artifacts/*.pth
 
-# ── Logs (never commit raw logs) ──────────────────────────────────────────────
+# ── Runtime state (never overwrite with git pull) ────────────────────────────
+# These are generated at runtime — git pull must NEVER overwrite them.
+# leaderboard.json accumulates experiments on cloud: if tracked, git pull
+# will MERGE CONFLICT mid-run. Untracked = cloud state always safe.
+master_log/leaderboard.json
+master_log/orchestrator_state.json
 master_log/master_terminal.log
+experiments/*/model.py
+experiments/*/train.py
+experiments/*/eval.py
+experiments/*/results.json
 
 # ── Python cache ─────────────────────────────────────────────────────────────
 __pycache__/
