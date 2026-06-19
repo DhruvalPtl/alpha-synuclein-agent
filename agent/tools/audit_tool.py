@@ -3,8 +3,9 @@ agent/tools/audit_tool.py
 ────────────────────────────────────────────────────────────────────────────
 Anti-cheat scanner — MUST run before any experiment executes.
 
-Scans all generated code files for forbidden patterns that would leak
-test-set information into training or validation metrics.
+Now that experiments use a fixed harness (harness_template.py), the LLM
+only supplies model_code: a Python string defining build_and_train().
+This audit scans that function body for forbidden test-set patterns.
 
 Forbidden patterns
 ------------------
@@ -18,7 +19,7 @@ Usage
 -----
     from agent.tools.audit_tool import AuditTool
     audit = AuditTool()
-    result = audit.forward(code_block="... python code ...")
+    result = audit.forward(code_block=model_code_string)
     # result: "PASS" or "FAIL: <reason>"
 """
 
@@ -100,18 +101,18 @@ class AuditTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
 
     name        = "audit_code"
     description = (
-        "Anti-cheat scanner. Checks Python code for any forbidden patterns "
-        "that would leak test-set information. "
+        "Anti-cheat scanner. Scans the model_code (build_and_train function) "
+        "for any forbidden patterns that would leak test-set information. "
         "Call this BEFORE run_experiment. "
-        "Input: a string containing the full Python code to audit. "
+        "Input: the model_code string you plan to pass to run_experiment. "
         "Returns 'PASS' or 'FAIL: <reason>'."
     )
     inputs = {
         "code_block": {
             "type": "string",
             "description": (
-                "The complete Python code to audit. "
-                "Can be the concatenation of model.py + train.py + eval.py."
+                "The model_code string to audit — the Python source defining "
+                "build_and_train(X_train, y_train, X_val, y_val, class_weights)."
             ),
         }
     }

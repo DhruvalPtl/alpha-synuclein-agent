@@ -1,0 +1,10 @@
+architecture_family: linear
+exp_id: exp_001_laptop_logistic_regression_c_0_1
+exp_name: logistic_regression_c_0_1
+hyperparams:
+  C: 0.1
+  max_iter: 2000
+  solver: lbfgs
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-19T13:46:24'

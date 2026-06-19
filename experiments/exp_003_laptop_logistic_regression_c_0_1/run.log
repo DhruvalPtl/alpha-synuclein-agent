@@ -1,0 +1,31 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-19 13:47:53
+────────────────────────────────────────────────────────────
+[2026-06-19 13:47:53] [INFO   ] [ExperimentRunner] Files written to experiments\exp_003_laptop_logistic_regression_c_0_1
+[2026-06-19 13:47:53] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-19 13:47:53] [INFO   ] [ExperimentRunner] Audit PASS for exp_003_laptop_logistic_regression_c_0_1
+[2026-06-19 13:47:53] [INFO   ] [ExperimentRunner] Running: D:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_003_laptop_logistic_regression_c_0_1\train_eval.py
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_003_laptop_logistic_regression_c_0_1
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Experiment   = exp_003_laptop_logistic_regression_c_0_1
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_003_laptop_logistic_regression_c_0_1\model.py ...
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] build_and_train() returned in 0.67s
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] val_accuracy  = 0.8333
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5904
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9555555555555556, '1': 0.5, '2': 0.46153846153846156, '3': 0.4444444444444444}
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_003_laptop_logistic_regression_c_0_1\results.json
+[2026-06-19 13:47:56] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5904
+[2026-06-19 13:47:57] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=4  best_f1=0.7234
+[2026-06-19 13:47:57] [AGENT  ] [ExperimentRunner] exp_003_laptop_logistic_regression_c_0_1 COMPLETE | val_f1_macro=0.5904 | status=success | time=3.6s
+[2026-06-19 13:47:57] [AGENT  ] [ExperimentRunner] Starting exp_004_laptop_linearsvc_c_0_1: linearsvc_c_0_1 (family=linear)

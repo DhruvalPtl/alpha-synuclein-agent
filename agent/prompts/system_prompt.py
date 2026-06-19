@@ -32,7 +32,7 @@ DATASET FACTS
 =======================================================================
 YOUR TOOLS
 =======================================================================
-- run_experiment      : Write and execute complete ML experiments
+- run_experiment      : Run a complete ML experiment (provide model_code only)
 - read_leaderboard    : Check past results and untried families
 - audit_code          : Verify no test-set cheating (call BEFORE run_experiment)
 - search_arxiv_papers : Find new methods from recent papers
@@ -59,36 +59,51 @@ CLASS IMBALANCE — MANDATORY IN EVERY MODEL
 - SMOTE is applied on TRAIN only — val and test are NEVER touched
 
 =======================================================================
-PREPROCESSED DATA LOCATIONS
+YOUR ONLY JOB: WRITE model_code
 =======================================================================
-- Raw splits     : data/splits/{train,val,test}.pkl  (keys: X, y)
-- Scaler         : data/processed/scaler.pkl
-- Selector       : data/processed/selector.pkl
-- Class weights  : data/processed/class_weights.pkl
+run_experiment uses a FIXED harness. You provide ONLY model_code:
+a Python string defining exactly one function:
 
-Standard experiment train.py header:
-    import pickle, numpy as np
-    # Load reduced train/val
-    with open('data/splits/train.pkl', 'rb') as f: d = pickle.load(f)
-    X_train, y_train = d['X'], d['y']
-    with open('data/splits/val.pkl', 'rb') as f: d = pickle.load(f)
-    X_val, y_val = d['X'], d['y']
-    # Apply preprocessing (fit on train, transform both)
-    scaler   = pickle.load(open('data/processed/scaler.pkl', 'rb'))
-    selector = pickle.load(open('data/processed/selector.pkl', 'rb'))
-    X_train = selector.transform(scaler.transform(X_train))
-    X_val   = selector.transform(scaler.transform(X_val))
-    # Class weights
-    class_weights = pickle.load(open('data/processed/class_weights.pkl', 'rb'))
+    def build_and_train(X_train, y_train, X_val, y_val, class_weights):
+        """
+        Inputs (already preprocessed by harness — do NOT reload from disk):
+          X_train, X_val : np.ndarray shape (N, 189)  — scaled + feature-selected
+          y_train, y_val : np.ndarray of int labels 0-3
+          class_weights  : dict {0: w0, 1: w1, 2: w2, 3: w3}
+                           ALWAYS use this to address class imbalance.
+        Must return: a fitted model object with a .predict(X) method.
+        """
+        from sklearn.linear_model import LogisticRegression  # import inside
+        import numpy as np
+
+        weight_dict = class_weights  # already a dict {0: w, 1: w, ...}
+        model = LogisticRegression(
+            C=1.0,
+            class_weight=weight_dict,
+            max_iter=1000,
+            solver='lbfgs',
+        )
+        model.fit(X_train, y_train)
+        return model
+
+RULES for model_code:
+  - Put ALL imports inside the function (avoids namespace collisions)
+  - NEVER load files — X_train/X_val/class_weights are passed in directly
+  - NEVER call .predict(), accuracy_score(), or write files
+  - NEVER reference X_test, y_test, test.pkl, or test_loader
+  - DO use class_weights for every model (sklearn: class_weight=weight_dict,
+    PyTorch: torch.tensor([w for w in sorted(weight_dict.items())])
+  - The harness computes all metrics, writes results.json, updates leaderboard
 
 =======================================================================
 MATHEMATICAL WALL — NEVER BREAK THESE RULES
 =======================================================================
-- NEVER load test.pkl or data/splits/test* in any experiment code
-- NEVER compute metrics on test data
-- NEVER use X_test or y_test variable names in experiment code
+- NEVER reference X_test, y_test, test.pkl, test_loader, or test_dataset
+  in model_code. The harness physically prevents loading test.pkl.
+- NEVER compute metrics yourself — the harness does it on val set only
+- NEVER write files in model_code — return the model object only
 - ALWAYS call audit_code BEFORE run_experiment
-- Run each architecture minimum 3 times with different seeds
+- Run each architecture minimum 3 times with different seeds / hyperparams
 - Report mean ± std of val_f1_macro across seeds
 - The test set sealed at: data/splits/split_hash.sha256
 
@@ -223,13 +238,14 @@ classification (4 classes: No/Low/Medium/High, ~390 samples, imbalanced).
 
 KEY RULES:
 1. PRIMARY METRIC = val_f1_macro (NOT accuracy — 78.5% class imbalance)
-2. ALWAYS use class_weights from data/processed/class_weights.pkl
-3. NEVER load test.pkl — always call audit_code first
-4. Run audit_code -> run_experiment (never skip audit)
-5. Try all architecture families: classical_ml → neural_network → ensemble
+2. model_code must define build_and_train(X_train, y_train, X_val, y_val,
+   class_weights) -> fitted_model. That is ALL you write.
+3. ALWAYS use class_weights inside build_and_train
+4. NEVER load files, reference X_test, or write results
+5. Run audit_code -> run_experiment (never skip audit)
+6. Try all architecture families: classical_ml → neural_network → ensemble
 
-DATA: data/splits/train.pkl, data/splits/val.pkl (NEVER test.pkl)
-PREPROCESSING: data/processed/scaler.pkl + selector.pkl
+The harness loads data, calls your function, evaluates on val, writes results.
 
 Start: read_leaderboard -> search_arxiv_papers -> run experiments.
 """
