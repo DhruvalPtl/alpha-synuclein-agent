@@ -49,7 +49,7 @@ else:
 
 # ── Step 2: Install requirements ──────────────────────────────────────────────
 req = CLOUD_INSTALL / "requirements.txt"
-print(f"\n[2/5] Installing {req} ...")
+print(f"\n[2/6] Installing {req} ...")
 r = subprocess.run(
     [PYTHON, "-m", "pip", "install", "-q", "-r", str(req)],
     cwd=str(CLOUD_INSTALL),
@@ -59,6 +59,19 @@ if r.returncode != 0:
     print(f"ERROR: pip install failed (exit {r.returncode})")
     sys.exit(1)
 print("Requirements installed.")
+
+# ── Step 3: Install agent package in editable mode ────────────────────────────
+# This makes 'import agent' work from ANY directory/kernel without sys.path hacks
+print(f"\n[3/6] Installing agent package in editable mode ...")
+r = subprocess.run(
+    [PYTHON, "-m", "pip", "install", "-q", "-e", "."],
+    cwd=str(CLOUD_INSTALL),
+    text=True
+)
+if r.returncode != 0:
+    print(f"ERROR: pip install -e . failed (exit {r.returncode})")
+    sys.exit(1)
+print("Package installed. 'import agent' now works from any notebook cell.")
 
 # ── Step 3: GPU detection ─────────────────────────────────────────────────────
 def _has_nvidia():
