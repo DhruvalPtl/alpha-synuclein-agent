@@ -1,8 +1,13 @@
-# ── Serialised model artefacts ────────────────────────────────────────────────
-*.pkl
+# ── Serialised model artefacts (large checkpoints only) ──────────────────────
 *.pt
 *.pth
 *.ckpt
+# keep data/processed/*.pkl tracked (small sklearn objects)
+data/splits/*.pkl
+data/splits/*.sha256
+experiments/*/artifacts/*.pkl
+experiments/*/artifacts/*.pt
+experiments/*/artifacts/*.pth
 
 # ── Logs (never commit raw logs) ──────────────────────────────────────────────
 master_log/master_terminal.log
@@ -24,4 +29,9 @@ experiments/*/artifacts/
 # ── Virtual environment ───────────────────────────────────────────────────────
 .venv/
 venv/
+env/
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
 env/

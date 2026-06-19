@@ -2,15 +2,21 @@
 smolagents[all]
 litellm
 
-# ── Deep learning ─────────────────────────────────────────────────────────────
+# ── Deep learning (CPU wheel — GPU wheel installed by bootstrap if CUDA found) ─
+# On cloud GPU: bootstrap replaces this with the CUDA build automatically
 torch
 torchvision
+torchaudio
 transformers
+accelerate
 
 # ── Classical ML ──────────────────────────────────────────────────────────────
 scikit-learn
 xgboost
 lightgbm
+
+# ── Class imbalance ───────────────────────────────────────────────────────────
+imbalanced-learn
 
 # ── Data processing ───────────────────────────────────────────────────────────
 pandas
@@ -31,7 +37,10 @@ requests
 python-dotenv
 pyyaml
 rich
+packaging
 
 # ── Notebook ──────────────────────────────────────────────────────────────────
 jupyter
+jupyterlab
 ipywidgets
+nbformat
