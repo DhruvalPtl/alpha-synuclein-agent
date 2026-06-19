@@ -1,1 +1,3 @@
-# Prompts will be populated in Phase 2
+from .system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_SHORT
+
+__all__ = ["SYSTEM_PROMPT", "SYSTEM_PROMPT_SHORT"]

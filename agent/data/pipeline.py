@@ -468,7 +468,12 @@ class DataPipeline:
         with open(_VAL_PATH, "rb") as f:
             d = pickle.load(f);  self.X_val,   self.y_val   = d["X"], d["y"]
         with open(_TEST_PATH, "rb") as f:
-            d = pickle.load(f);  self.X_test,  self.y_test  = d["X"], d["y"]
+            d = pickle.load(f)
+            # seal_test_set() uses 'X_test'/'y_test'; save_splits() uses 'X'/'y'
+            if "X" in d:
+                self.X_test, self.y_test = d["X"], d["y"]
+            else:
+                self.X_test, self.y_test = d["X_test"], d["y_test"]
 
         if _META_PATH.exists():
             with open(_META_PATH, "rb") as f:
@@ -489,6 +494,221 @@ class DataPipeline:
             self.X_train, self.X_val, self.X_test,
             self.y_train, self.y_val, self.y_test,
         )
+
+    # ── 8. Feature reduction ──────────────────────────────────────────────────
+
+    def reduce_features(
+        self,
+        X_train: np.ndarray,
+        X_val:   np.ndarray,
+        X_test:  np.ndarray,
+        y_train: np.ndarray,
+        k_best:  int = 500,
+        use_pca: bool = False,
+        pca_variance: float = 0.95,
+    ) -> tuple:
+        """
+        Scale → select top-k features → optionally PCA.
+
+        Fit everything on TRAIN only; transform val and test.
+
+        Steps
+        -----
+        1. StandardScaler (required — many features span different ranges)
+        2. SelectKBest(f_classif, k=k_best)  — keeps top-500 features
+           (or PCA retaining *pca_variance* fraction of variance)
+
+        Artifacts saved
+        ---------------
+        data/processed/scaler.pkl
+        data/processed/selector.pkl   (SelectKBest  OR  PCA object)
+
+        Parameters
+        ----------
+        X_train, X_val, X_test : np.ndarray — raw 8427-dim arrays
+        y_train : np.ndarray  — class labels (train only, for SelectKBest)
+        k_best  : int         — number of features to keep (default 500)
+        use_pca : bool        — use PCA instead of SelectKBest
+        pca_variance : float  — variance fraction to retain (default 0.95)
+
+        Returns
+        -------
+        X_train_r, X_val_r, X_test_r : reduced arrays
+        """
+        from sklearn.feature_selection import SelectKBest, f_classif, VarianceThreshold
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.decomposition import PCA
+
+        processed_dir = Path("data/processed")
+        processed_dir.mkdir(parents=True, exist_ok=True)
+
+        n_orig = X_train.shape[1]
+
+        # ── Step 0: Remove zero-variance features ─────────────────────────────
+        vt = VarianceThreshold(threshold=0.0)
+        X_train_nv = vt.fit_transform(X_train)
+        X_val_nv   = vt.transform(X_val)
+        X_test_nv  = vt.transform(X_test)
+        n_after_vt = X_train_nv.shape[1]
+        print(
+            f"[reduce_features] Zero-variance removal: "
+            f"{n_orig} -> {n_after_vt} features"
+        )
+
+        # ── Step 1: StandardScaler ────────────────────────────────────────────
+        scaler = StandardScaler()
+        X_train_sc = scaler.fit_transform(X_train_nv)
+        X_val_sc   = scaler.transform(X_val_nv)
+        X_test_sc  = scaler.transform(X_test_nv)
+
+        # ── Step 2: SelectKBest OR PCA ────────────────────────────────────────
+        k_actual = min(k_best, X_train_sc.shape[1])
+
+        if use_pca:
+            selector = PCA(n_components=pca_variance, svd_solver="full")
+            X_train_r = selector.fit_transform(X_train_sc)
+            X_val_r   = selector.transform(X_val_sc)
+            X_test_r  = selector.transform(X_test_sc)
+            method = f"PCA({pca_variance*100:.0f}% var)"
+        else:
+            selector = SelectKBest(f_classif, k=k_actual)
+            X_train_r = selector.fit_transform(X_train_sc, y_train)
+            X_val_r   = selector.transform(X_val_sc)
+            X_test_r  = selector.transform(X_test_sc)
+            method = f"SelectKBest(f_classif, k={k_actual})"
+
+        n_final = X_train_r.shape[1]
+
+        # ── Persist artifacts ─────────────────────────────────────────────────
+        with open(processed_dir / "scaler.pkl",   "wb") as fh:
+            pickle.dump(scaler,   fh, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(processed_dir / "selector.pkl", "wb") as fh:
+            pickle.dump(selector, fh, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(processed_dir / "variance_threshold.pkl", "wb") as fh:
+            pickle.dump(vt, fh, protocol=pickle.HIGHEST_PROTOCOL)
+
+        msg = (
+            f"[reduce_features] {method}: "
+            f"{n_orig} -> {n_final} features saved to data/processed/"
+        )
+        print(msg)
+
+        # Update internal state for downstream save_splits if called again
+        self.X_train = X_train_r.astype(np.float32)
+        self.X_val   = X_val_r.astype(np.float32)
+        self.X_test  = X_test_r.astype(np.float32)
+
+        return (
+            X_train_r.astype(np.float32),
+            X_val_r.astype(np.float32),
+            X_test_r.astype(np.float32),
+        )
+
+    # ── 9. Class weights ──────────────────────────────────────────────────────
+
+    def get_class_weights(self, y_train: np.ndarray) -> Dict[int, float]:
+        """
+        Compute balanced class weights for imbalanced training.
+
+        Uses sklearn compute_class_weight("balanced") so minority classes
+        (Low=16, Medium=37, High=32) are up-weighted relative to No=311.
+
+        Saves weights to data/processed/class_weights.pkl.
+
+        Parameters
+        ----------
+        y_train : np.ndarray — training labels
+
+        Returns
+        -------
+        dict {class_int: weight_float}
+        """
+        from sklearn.utils.class_weight import compute_class_weight
+
+        classes  = np.unique(y_train)
+        raw_w    = compute_class_weight(
+            class_weight="balanced",
+            classes=classes,
+            y=y_train,
+        )
+        weight_dict: Dict[int, float] = {
+            int(c): float(w) for c, w in zip(classes, raw_w)
+        }
+
+        processed_dir = Path("data/processed")
+        processed_dir.mkdir(parents=True, exist_ok=True)
+        with open(processed_dir / "class_weights.pkl", "wb") as fh:
+            pickle.dump(weight_dict, fh, protocol=pickle.HIGHEST_PROTOCOL)
+
+        label_names = {0: "No", 1: "Low", 2: "Medium", 3: "High"}
+        formatted = {
+            f"{label_names.get(k, k)}({k})": round(v, 4)
+            for k, v in weight_dict.items()
+        }
+        print(f"[get_class_weights] Balanced weights: {formatted}")
+        print(
+            "[get_class_weights] Saved to data/processed/class_weights.pkl"
+        )
+        return weight_dict
+
+    # ── 10. SMOTE oversampling ────────────────────────────────────────────────
+
+    def apply_smote(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        random_state: int = 42,
+        k_neighbors: int = 3,
+    ) -> tuple:
+        """
+        Apply SMOTE oversampling to the TRAIN split ONLY.
+
+        NEVER call on val or test data.
+
+        Requires: pip install imbalanced-learn
+
+        Parameters
+        ----------
+        X_train, y_train : training split only
+        random_state     : reproducibility seed
+        k_neighbors      : SMOTE k_neighbors (reduce if <5 minority samples)
+
+        Returns
+        -------
+        X_resampled, y_resampled : augmented training arrays
+        """
+        try:
+            from imblearn.over_sampling import SMOTE
+        except ImportError:
+            print(
+                "[apply_smote] imbalanced-learn not installed. "
+                "Run: pip install imbalanced-learn"
+            )
+            return X_train, y_train
+
+        # Adapt k_neighbors to smallest class size minus 1
+        min_count = int(min(
+            (y_train == c).sum() for c in np.unique(y_train)
+        ))
+        k = min(k_neighbors, min_count - 1)
+        if k < 1:
+            print(
+                f"[apply_smote] Not enough minority samples (min={min_count})"
+                " — skipping SMOTE."
+            )
+            return X_train, y_train
+
+        smote = SMOTE(random_state=random_state, k_neighbors=k)
+        X_res, y_res = smote.fit_resample(X_train, y_train)
+
+        before = dict(zip(*np.unique(y_train, return_counts=True)))
+        after  = dict(zip(*np.unique(y_res,   return_counts=True)))
+        print(
+            f"[apply_smote] SMOTE complete.\n"
+            f"  Before: {before}\n"
+            f"  After : {after}"
+        )
+        return X_res.astype(np.float32), y_res.astype(np.int64)
 
     # ── Private helpers ───────────────────────────────────────────────────────
 
