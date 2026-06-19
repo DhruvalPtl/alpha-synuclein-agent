@@ -180,10 +180,15 @@ class AgentOrchestrator:
                 logger    = self.logger,
                 run_start = self._run_start,
             )
-            # Inject as step callback into the agent
-            if not hasattr(self._agent, "step_callbacks"):
-                self._agent.step_callbacks = []
-            self._agent.step_callbacks = [self._reporter.step_callback]
+            # Register the concise callback on the existing CallbackRegistry.
+            # smolagents 1.26.0+ stores step_callbacks as a CallbackRegistry
+            # instance — never replace it with a plain list or it breaks
+            # the internal `self.step_callbacks.callback(...)` call in
+            # _finalize_step().
+            from smolagents.memory import ActionStep
+            self._agent.step_callbacks.register(
+                ActionStep, self._reporter.step_callback
+            )
             print(
                 f"\n[Agent] Running in CONCISE mode — "
                 f"step summary only; full log → "
