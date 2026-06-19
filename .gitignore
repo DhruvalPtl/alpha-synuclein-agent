@@ -1,39 +1,37 @@
-# ── Serialised model artefacts (large checkpoints only) ──────────────────────
+# ── Serialised model artefacts (large binary weights — never track) ───────────
 *.pt
 *.pth
 *.ckpt
-# keep data/processed/*.pkl tracked (small sklearn objects)
+
+# ── Experiment artifacts (model weights, too large for git) ───────────────────
+# Per-experiment SOURCE files (model.py / train.py / eval.py / results.json /
+# config.yaml) ARE tracked — unique folder names prevent cross-machine conflicts.
+# Only the large binary artifacts directory is ignored.
+experiments/*/artifacts/
+# Also ignore raw split pkl arrays (re-generated from CSV in seconds)
 data/splits/*.pkl
 data/splits/*.sha256
-experiments/*/artifacts/*.pkl
-experiments/*/artifacts/*.pt
-experiments/*/artifacts/*.pth
+# Ignore processed pkl artifacts only if not force-added
+# (scaler.pkl, selector.pkl, class_weights.pkl are force-added via git add -f)
 
-# ── Runtime state (never overwrite with git pull) ────────────────────────────
-# These are generated at runtime — git pull must NEVER overwrite them.
-# leaderboard.json accumulates experiments on cloud: if tracked, git pull
-# will MERGE CONFLICT mid-run. Untracked = cloud state always safe.
+# ── Runtime-only state (NEVER let git pull overwrite live run state) ──────────
+# leaderboard.json is rebuilt from experiments/*/results.json via
+# rebuild_leaderboard.py — it is NOT a source of truth, just a cache.
+# Keeping it untracked prevents merge conflicts during live agent runs.
 master_log/leaderboard.json
 master_log/orchestrator_state.json
 master_log/master_terminal.log
-experiments/*/model.py
-experiments/*/train.py
-experiments/*/eval.py
-experiments/*/results.json
 
-# ── Python cache ─────────────────────────────────────────────────────────────
+# ── Python cache ──────────────────────────────────────────────────────────────
 __pycache__/
 *.pyc
 *.pyo
 
-# ── Environment files (actual values, not the template) ──────────────────────
+# ── Environment files (actual values — template is in repo) ──────────────────
 .env
 
 # ── Jupyter checkpoints ───────────────────────────────────────────────────────
 .ipynb_checkpoints/
-
-# ── Experiment binary artefacts ───────────────────────────────────────────────
-experiments/*/artifacts/
 
 # ── Virtual environment ───────────────────────────────────────────────────────
 .venv/
@@ -43,4 +41,3 @@ env/
 # ── OS noise ──────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-env/

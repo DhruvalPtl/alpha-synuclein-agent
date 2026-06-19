@@ -3,23 +3,42 @@ agent/tools/experiment_runner.py
 ────────────────────────────────────────────────────────────────────────────
 Smolagents Tool: end-to-end experiment orchestration.
 
+Experiment ID scheme
+────────────────────
+  Format : exp_{NNN}_{machine_id}_{arch_name}
+  Example: exp_003_gcloud_random_forest_baseline
+           exp_003_laptop_random_forest_baseline
+
+  NNN        — zero-padded counter, derived by scanning experiments/ on disk.
+               Scanning disk (not leaderboard.json) ensures it works even
+               when leaderboard.json is gitignored / absent on a fresh clone.
+  machine_id — read from MACHINE_ID env var in .env
+               (e.g. MACHINE_ID=laptop  or  MACHINE_ID=gcloud)
+               Falls back to platform.node() if not set — never empty.
+  arch_name  — sanitised exp_name, max 30 chars.
+
+  Because machine_id is part of the folder name, exp_003_laptop and
+  exp_003_gcloud are guaranteed to be DIFFERENT folders.  Git can track both
+  without conflict.  Two machines running simultaneously will never silently
+  overwrite each other's experiments.
+
 Workflow inside forward()
 ─────────────────────────
-  1.  Auto-increment experiment ID from leaderboard.json
-  2.  Create experiments/exp_NNN_<name>/ directory
-  3.  Write model.py, train.py, eval.py as real files
-  4.  Write config.yaml with hyperparams
-  5.  Anti-cheat audit (AuditTool) — abort if FAIL
-  6.  Execute train.py in subprocess, stream all output via TeeLogger
-  7.  Execute eval.py in subprocess, stream output
-  8.  Read results.json written by eval.py
-  9.  Update master_log/leaderboard.json
- 10.  Return human-readable results string
+  1.  Resolve experiment ID (disk scan + MACHINE_ID)
+  2.  Create experiments/exp_NNN_<machine>_<name>/ directory
+  3.  Write model.py, train.py, eval.py, config.yaml
+  4.  Anti-cheat audit (AuditTool) — abort if FAIL
+  5.  Execute train.py in subprocess, stream all output via TeeLogger
+  6.  Execute eval.py in subprocess, stream output
+  7.  Read results.json written by eval.py
+  8.  Update master_log/leaderboard.json (local cache — gitignored)
+  9.  Return human-readable results string
 
 Results schema (VAL ONLY — never test metrics)
 ──────────────────────────────────────────────
   {
-    "exp_id":               "exp_001",
+    "exp_id":               "exp_003_gcloud_random_forest_baseline",
+    "machine_id":           "gcloud",
     "timestamp":            "2024-01-01T12:00:00",
     "architecture":         "RandomForestClassifier",
     "architecture_family":  "classical_ml",
@@ -37,6 +56,7 @@ Results schema (VAL ONLY — never test metrics)
 
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -45,6 +65,12 @@ import textwrap
 import datetime
 from pathlib import Path
 from typing import Dict, Any, Optional, List
+
+try:
+    from dotenv import load_dotenv
+    load_dotenv(override=False)   # populate MACHINE_ID from .env if present
+except ImportError:
+    pass
 
 import yaml
 
@@ -152,10 +178,10 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
         """
         Execute the experiment and return a formatted results string.
         """
-        # ── 1. Resolve experiment ID ──────────────────────────────────────────
-        exp_id = self._next_exp_id()
-        folder_name = f"{exp_id}_{_sanitize(exp_name)}"
-        exp_dir = _EXPERIMENTS_DIR / folder_name
+        # ── 1. Resolve experiment ID (collision-safe, cross-machine) ─────────
+        machine_id  = _get_machine_id()
+        exp_id      = self._next_exp_id(machine_id, exp_name)
+        exp_dir     = _EXPERIMENTS_DIR / exp_id
         exp_dir.mkdir(parents=True, exist_ok=True)
         artifacts_dir = exp_dir / "artifacts"
         artifacts_dir.mkdir(exist_ok=True)
@@ -180,6 +206,7 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
         config = {
             "exp_id":               exp_id,
             "exp_name":             exp_name,
+            "machine_id":           machine_id,
             "architecture_family":  architecture_family,
             "hyperparams":          hp_dict,
             "timestamp":            datetime.datetime.now().isoformat(timespec="seconds"),
@@ -265,6 +292,7 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
 
         # Ensure required fields are present
         result.setdefault("exp_id",               exp_id)
+        result.setdefault("machine_id",           machine_id)
         result.setdefault("timestamp",            config["timestamp"])
         result.setdefault("architecture",         exp_name)
         result.setdefault("architecture_family",  architecture_family)
@@ -362,14 +390,26 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
 
         return success, "\n".join(output_lines)
 
-    def _next_exp_id(self) -> str:
-        """Return the next experiment ID as 'exp_NNN'."""
-        if not _LEADERBOARD_PATH.exists():
-            return "exp_001"
-        with open(_LEADERBOARD_PATH, "r", encoding="utf-8") as fh:
-            lb = json.load(fh)
-        n = lb.get("total_runs", 0) + 1
-        return f"exp_{n:03d}"
+    def _next_exp_id(self, machine_id: str, exp_name: str) -> str:
+        """
+        Return the next collision-safe experiment ID.
+
+        Format: exp_{NNN}_{machine_id}_{arch_name}
+
+        NNN is derived by scanning experiments/ on disk — this works
+        on a fresh clone where leaderboard.json does not exist yet.
+        """
+        # Count existing folders on disk that belong to THIS machine
+        # (so NNN is per-machine sequential, always incrementing)
+        prefix = f"exp_"
+        existing = [
+            d for d in _EXPERIMENTS_DIR.iterdir()
+            if d.is_dir() and d.name.startswith(prefix)
+               and f"_{machine_id}_" in d.name
+        ] if _EXPERIMENTS_DIR.exists() else []
+        n = len(existing) + 1
+        arch_slug = _sanitize(exp_name)[:30]
+        return f"exp_{n:03d}_{machine_id}_{arch_slug}"
 
     def _update_leaderboard(self, result: Dict[str, Any]) -> None:
         """Append result to leaderboard.json and update summary fields."""
@@ -385,6 +425,7 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
         # Append experiment (store a compact summary, not the full result)
         summary = {
             "exp_id":               result.get("exp_id"),
+            "machine_id":           result.get("machine_id", "unknown"),
             "architecture":         result.get("architecture"),
             "architecture_family":  result.get("architecture_family"),
             "val_f1_macro":         result.get("val_f1_macro", 0.0),
@@ -491,8 +532,27 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
         return "\n".join(lines)
 
 
-# ── Helpers ────────────────────────────────────────────────────────────────────
+# ── Module-level helpers ──────────────────────────────────────────────────────
 
 def _sanitize(name: str) -> str:
-    """Convert to safe folder name."""
-    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:40].strip("_")
+    """Convert to safe folder name characters."""
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", name).strip("_")
+
+
+def _get_machine_id() -> str:
+    """
+    Return a short, stable machine identifier.
+
+    Priority:
+      1. MACHINE_ID env var (set in .env, e.g. MACHINE_ID=gcloud)
+      2. platform.node() hostname (always available, never empty)
+
+    The value is sanitised to [a-zA-Z0-9_-] and capped at 16 chars
+    so folder names stay readable.
+    """
+    raw = os.environ.get("MACHINE_ID", "").strip()
+    if not raw:
+        raw = platform.node()  # hostname — e.g. 'quantkit', 'DESKTOP-XYZ'
+    if not raw:
+        raw = "unknown"
+    return _sanitize(raw)[:16]
