@@ -29,6 +29,7 @@ from typing import Optional, List
 
 from agent.core.tee_logger import TeeLogger
 from agent.core.llm_manager import LLMManager
+from agent.core.session_manager import SessionManager
 from agent.prompts.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_SHORT
 from agent.tools.experiment_runner import ExperimentRunnerTool
 from agent.tools.leaderboard_tool import LeaderboardTool
@@ -120,6 +121,8 @@ class AgentOrchestrator:
         self._stop_event  = threading.Event()
         self._running     = False
         self._run_start   = None
+        self._session:    Optional[SessionManager] = None
+        self._exp_count   = 0   # experiments completed this session
 
         self.logger.agent("[Orchestrator] Ready. Call agent.run() to start.")
 
@@ -152,11 +155,47 @@ class AgentOrchestrator:
         self._stop_event.clear()
         self._running   = True
         self._run_start = time.time()
+        self._exp_count = 0
+
+        # ── Session management ────────────────────────────────────────────────
+        self._session = SessionManager(
+            model_name = self.model_name,
+            logger     = self.logger,
+        )
+        self._session.start()
+        self._session.tick(current_exp="none", step=0, status="running")
+
+        # Wrap ExperimentRunnerTool.forward to update session tick after each run
+        runner_tool = next(
+            (t for t in self.tools if isinstance(t, ExperimentRunnerTool)), None
+        )
+        if runner_tool is not None:
+            _orig_forward = runner_tool.forward
+            _orch = self
+
+            def _tracked_forward(exp_name, architecture_family, model_code, hyperparams):
+                _orch._session.tick(
+                    current_exp = exp_name,
+                    step        = _orch._exp_count,
+                    status      = "running",
+                )
+                result = _orig_forward(exp_name, architecture_family, model_code, hyperparams)
+                _orch._exp_count += 1
+                _orch._session.tick(
+                    current_exp = exp_name,
+                    step        = _orch._exp_count,
+                    status      = "running",
+                )
+                return result
+
+            import types
+            runner_tool.forward = types.MethodType(_tracked_forward, runner_tool)
 
         # Inject the experiment budget into the prompt
         prompt = self._prompt + (
             f"\n\nADDITIONAL CONSTRAINT FOR THIS SESSION:\n"
             f"Maximum experiments allowed: {max_experiments}.\n"
+            f"Session ID: {self._session.session_id}\n"
             f"Current time: {datetime.datetime.now().isoformat(timespec='seconds')}\n"
         )
 
@@ -167,7 +206,9 @@ class AgentOrchestrator:
         )
         self._save_state("running")
 
-        result = None
+        result     = None
+        fin_status = "completed"
+        fin_error  = None
         try:
             result = self._agent.run(prompt)
             self.logger.agent(
@@ -175,10 +216,14 @@ class AgentOrchestrator:
                 f"elapsed={self._elapsed()}"
             )
         except KeyboardInterrupt:
+            fin_status = "interrupted"
+            fin_error  = "KeyboardInterrupt"
             self.logger.warning(
                 "[Orchestrator] KeyboardInterrupt — stopping gracefully."
             )
         except Exception as exc:
+            fin_status = "crashed"
+            fin_error  = f"{type(exc).__name__}: {exc}"
             self.logger.error(
                 f"[Orchestrator] Agent crashed: {exc}"
             )
@@ -186,6 +231,12 @@ class AgentOrchestrator:
         finally:
             self._running = False
             self._save_state("idle")
+            if self._session is not None:
+                self._session.end(
+                    status            = fin_status,
+                    total_experiments = self._exp_count,
+                    error_message     = fin_error,
+                )
 
         return result
 
