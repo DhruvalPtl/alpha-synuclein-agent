@@ -188,8 +188,10 @@ class AgentOrchestrator:
                 )
                 return result
 
-            import types
-            runner_tool.forward = types.MethodType(_tracked_forward, runner_tool)
+            # Assign as plain function on the instance — NOT MethodType.
+            # MethodType(f, obj) binds obj as the first positional arg which
+            # would pass runner_tool as exp_name. Plain assignment is correct.
+            runner_tool.forward = _tracked_forward
 
         # Inject the experiment budget into the prompt
         prompt = self._prompt + (

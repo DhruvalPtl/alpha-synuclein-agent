@@ -34,6 +34,7 @@ except ImportError:
         pass
 
 from agent.core.tee_logger import TeeLogger
+from agent.tools.rebuild_leaderboard import rebuild_leaderboard
 
 _LEADERBOARD_PATH = Path("master_log/leaderboard.json")
 
@@ -82,6 +83,9 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
         """
         Generate and return the leaderboard report.
 
+        Calls rebuild_leaderboard() first so the report reflects ALL
+        experiments from both machines (not just the local cache).
+
         Parameters
         ----------
         top_n : int   — how many top experiments to display
@@ -90,6 +94,16 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
         -------
         str — human-readable formatted report
         """
+        # Rebuild from disk first — merges both machines' results.json files
+        try:
+            rebuild_leaderboard(verbose=False)
+            self.logger.info("[LeaderboardTool] Leaderboard rebuilt from disk.")
+        except Exception as exc:
+            self.logger.warning(
+                f"[LeaderboardTool] rebuild_leaderboard failed ({exc}); "
+                "falling back to cached leaderboard.json."
+            )
+
         if not _LEADERBOARD_PATH.exists():
             return "[LeaderboardTool] leaderboard.json not found."
 
@@ -132,18 +146,17 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
 
             lines.append(f"\n  TOP {min(top_n, len(ranked))} EXPERIMENTS")
             lines.append(
-                f"  {'Rank':<5} {'Exp ID':<14} {'Architecture':<26}"
-                f" {'F1-macro':>9} {'Accuracy':>9} {'Train(s)':>9} {'Status':<9}"
+                f"  {'Rank':<5} {'Exp ID':<42} {'F1-macro':>9}"
+                f" {'Accuracy':>9} {'Machine':<10} {'Status':<9}"
             )
-            lines.append("  " + "-" * 82)
+            lines.append("  " + "-" * 88)
             for rank, exp in enumerate(ranked, start=1):
                 lines.append(
                     f"  {rank:<5} "
-                    f"{exp.get('exp_id','?'):<14} "
-                    f"{exp.get('architecture','?'):<26} "
+                    f"{exp.get('exp_id','?'):<42} "
                     f"{exp.get('val_f1_macro', 0.0):>9.4f} "
                     f"{exp.get('val_accuracy', 0.0):>9.4f} "
-                    f"{exp.get('train_time_seconds', 0.0):>9.1f} "
+                    f"{exp.get('machine_id','?'):<10} "
                     f"{exp.get('status','?'):<9}"
                 )
 

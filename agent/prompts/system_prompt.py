@@ -65,14 +65,11 @@ run_experiment uses a FIXED harness. You provide ONLY model_code:
 a Python string defining exactly one function:
 
     def build_and_train(X_train, y_train, X_val, y_val, class_weights):
-        """
-        Inputs (already preprocessed by harness — do NOT reload from disk):
-          X_train, X_val : np.ndarray shape (N, 189)  — scaled + feature-selected
-          y_train, y_val : np.ndarray of int labels 0-3
-          class_weights  : dict {0: w0, 1: w1, 2: w2, 3: w3}
-                           ALWAYS use this to address class imbalance.
-        Must return: a fitted model object with a .predict(X) method.
-        """
+        # Inputs (already preprocessed by harness — do NOT reload from disk):
+        #   X_train, X_val : np.ndarray, already scaled + feature-selected
+        #   y_train, y_val : np.ndarray of int labels 0-3
+        #   class_weights  : dict {0: w0, 1: w1, 2: w2, 3: w3}
+        # Must return: a fitted model object with a .predict(X) method.
         from sklearn.linear_model import LogisticRegression  # import inside
         import numpy as np
 
