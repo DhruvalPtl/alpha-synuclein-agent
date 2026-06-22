@@ -34,6 +34,7 @@ from agent.core.tee_logger import TeeLogger
 
 # ── Model registry ─────────────────────────────────────────────────────────────
 MODELS: Dict[str, str] = {
+    # ── Cloud models ────────────────────────────────────────────────
     "gemini-flash":   "gemini/gemini-1.5-flash",
     "gemini-pro":     "gemini/gemini-1.5-pro",
     "groq-llama":     "groq/llama-3.3-70b-versatile",
@@ -41,8 +42,19 @@ MODELS: Dict[str, str] = {
     "mistral-small":  "mistral/mistral-small-latest",
     "cerebras":       "cerebras/llama-3.3-70b",
     "openrouter":     "openrouter/meta-llama/llama-3.3-70b",
+    # ── Ollama (local, http://localhost:11434) ───────────────────────
     "local-qwen":     "ollama/qwen2.5-coder:32b",
     "local-deepseek": "ollama/deepseek-r1:14b",
+    # ── LM Studio (local, http://localhost:1234/v1) ──────────────────
+    # In LM Studio: enable the local server, load any model, then
+    # set MODEL_NAME to one of the keys below that matches what you
+    # have loaded.  The model string after 'lmstudio/' is ignored by
+    # LiteLLM — it always talks to whatever is loaded in LM Studio.
+    "lmstudio-qwen":     "openai/lmstudio-qwen",
+    "lmstudio-deepseek": "openai/lmstudio-deepseek",
+    "lmstudio-mistral":  "openai/lmstudio-mistral",
+    "lmstudio-llama":    "openai/lmstudio-llama",
+    "lmstudio-any":      "openai/lmstudio-any",   # generic: use when unsure
 }
 
 # ── Provider → env-var for API key ────────────────────────────────────────────
@@ -54,11 +66,18 @@ _API_KEY_MAP: Dict[str, str] = {
     "cerebras":    "CEREBRAS_API_KEY",
 }
 
+# ── LM Studio base URL ────────────────────────────────────────────────────────
+# LM Studio's local server is OpenAI-compatible. Default port is 1234.
+# Change this if you've configured a different port in LM Studio.
+_LMSTUDIO_BASE_URL = "http://localhost:1234/v1"
+_LMSTUDIO_PREFIXES = {"lmstudio-"}   # any model key starting with this
+
 # ── Default fallback order (first working model wins) ─────────────────────────
 DEFAULT_FALLBACK_CHAIN: List[str] = [
-    "local-qwen",    # free, fast, no rate limit
-    "groq-llama",    # generous free tier
-    "gemini-flash",  # Google free tier
+    "lmstudio-any",  # LM Studio — no rate limit, free, private
+    "local-qwen",    # Ollama — free, fast, no rate limit
+    "groq-llama",    # Groq cloud — generous free tier
+    "gemini-flash",  # Google cloud — free tier
 ]
 
 _MASTER_LOG_DIR = Path("master_log")
@@ -224,9 +243,17 @@ class LLMManager:
         if api_key:
             kwargs["api_key"] = api_key
 
-        # Ollama / local models need no API key and use a local base_url
+        # Ollama — local, no API key, custom base URL
         if provider == "ollama":
             kwargs.setdefault("api_base", "http://localhost:11434")
+
+        # LM Studio — OpenAI-compatible local server, no API key needed.
+        # We use provider=openai with a custom api_base pointing to LM Studio.
+        # LiteLLM sends the model_id string to the server but LM Studio
+        # ignores it and uses whatever model is currently loaded.
+        if any(model_name.startswith(p) for p in _LMSTUDIO_PREFIXES):
+            kwargs.setdefault("api_base", _LMSTUDIO_BASE_URL)
+            kwargs.setdefault("api_key", "lm-studio")  # LM Studio ignores the key
 
         self._model    = LiteLLMModel(**kwargs)
         self.model_name = model_name
