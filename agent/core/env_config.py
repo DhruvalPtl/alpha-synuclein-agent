@@ -30,6 +30,9 @@ import platform
 from pathlib import Path
 from typing import Optional
 
+# Lazy import of PlatformDetector to avoid circular deps at module level
+_platform_info: Optional[dict] = None
+
 # ── Marker files that prove we are at the project root ────────────────────────
 _ROOT_MARKERS = ("requirements.txt", "agent", "data", "notebooks")
 
@@ -117,6 +120,7 @@ def setup_environment(verbose: bool = True) -> Path:
         sys.path.insert(0, root_str)
 
     if verbose:
+        # ── Basic environment info ───────────────────────────────────────────
         is_cloud = _detect_cloud()
         env_label = "CLOUD (GCE)" if is_cloud else "LOCAL"
         py = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
@@ -126,6 +130,26 @@ def setup_environment(verbose: bool = True) -> Path:
         print(f"[env_config] Platform     : {platform.system()} {platform.machine()}")
         if is_cloud:
             _print_cloud_info()
+
+        # ── Platform + GPU + model recommendation ─────────────────────────
+        global _platform_info
+        try:
+            from agent.core.platform_detector import PlatformDetector
+            _platform_info = PlatformDetector().detect()
+            gpu_name = _platform_info.get("gpu_name") or "none"
+            vram     = _platform_info.get("gpu_vram_gb")
+            vram_str = f"{vram:.0f} GB" if vram else "no GPU"
+            model    = _platform_info.get("recommended_model", "?")
+            reason   = _platform_info.get("recommended_model_reason", "")
+            ollama   = "✅ ollama" if _platform_info.get("has_ollama") else "❌ no ollama"
+            plat     = _platform_info.get("platform", "?")
+            print(
+                f"[env_config] Platform: {plat} | "
+                f"GPU: {gpu_name} {vram_str} | {ollama}"
+            )
+            print(f"[env_config] Recommended model: {model} — {reason}")
+        except Exception as pd_exc:
+            print(f"[env_config] Platform detection skipped: {pd_exc}")
 
     return root
 

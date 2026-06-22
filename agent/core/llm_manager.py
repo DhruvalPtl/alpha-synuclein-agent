@@ -37,6 +37,7 @@ from agent.core.tee_logger import TeeLogger
 MODELS: Dict[str, str] = {
     # ── Cloud models ────────────────────────────────────────────────
     "gemini-flash":   "gemini/gemini-3.5-flash",
+    "gemini-flash-lite": "gemini/gemini-3.1-flash-lite",
     "gemini-pro":     "gemini/gemini-3.1-pro-preview",
     "groq-llama":     "groq/llama-3.3-70b-versatile",
     "groq-mixtral":   "groq/mixtral-8x7b-32768",
@@ -56,6 +57,11 @@ MODELS: Dict[str, str] = {
     "lmstudio-mistral":  "openai/lmstudio-mistral",
     "lmstudio-llama":    "openai/lmstudio-llama",
     "lmstudio-any":      "openai/lmstudio-any",   # generic: use when unsure
+    # ── Llamafile (Colab/Kaggle, http://localhost:8080/v1) ───────────
+    # Start via: LlamafileManager("qwen-14b-coder").start()
+    # Then set MODEL_NAME to one of these keys.
+    "llamafile-14b":  "openai/llamafile-qwen-14b",
+    "llamafile-32b":  "openai/llamafile-qwen-32b",
 }
 
 # ── Provider → env-var for API key ────────────────────────────────────────────
@@ -85,8 +91,8 @@ _MASTER_LOG_DIR = Path("master_log")
 
 # ── Gemini rate-limit guard ───────────────────────────────────────────────────
 # Free tier: 15 RPM hard limit → we target 12 to leave a safety margin.
-_GEMINI_RPM          = 12
-_GEMINI_MIN_CALL_GAP = 4.0   # seconds between Gemini API calls (60/12 = 5s → use 4s to avoid rounding)
+_GEMINI_RPM          = 5
+_GEMINI_MIN_CALL_GAP = 11.0   # seconds between Gemini API calls (60/5 = 12s → use 11s to avoid rounding)
 _GEMINI_BACKOFF_DELAYS = [5, 10, 20, 40, 60]  # seconds before each retry
 
 
@@ -304,6 +310,12 @@ class LLMManager:
         if any(model_name.startswith(p) for p in _LMSTUDIO_PREFIXES):
             kwargs.setdefault("api_base", _LMSTUDIO_BASE_URL)
             kwargs.setdefault("api_key", "lm-studio")  # LM Studio ignores the key
+
+        # Llamafile — OpenAI-compatible server started by LlamafileManager.
+        # Default port 8080.  No API key needed.
+        if model_name.startswith("llamafile-"):
+            kwargs.setdefault("api_base", "http://localhost:8080/v1")
+            kwargs.setdefault("api_key", "llamafile")  # server ignores it
 
         raw_model = LiteLLMModel(**kwargs)
 
