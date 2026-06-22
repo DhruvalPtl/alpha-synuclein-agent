@@ -24,6 +24,7 @@ Usage
 
 import os
 import time
+import threading
 import json
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -35,8 +36,8 @@ from agent.core.tee_logger import TeeLogger
 # ── Model registry ─────────────────────────────────────────────────────────────
 MODELS: Dict[str, str] = {
     # ── Cloud models ────────────────────────────────────────────────
-    "gemini-flash":   "gemini/gemini-1.5-flash",
-    "gemini-pro":     "gemini/gemini-1.5-pro",
+    "gemini-flash":   "gemini/gemini-3.5-flash",
+    "gemini-pro":     "gemini/gemini-3.1-pro-preview",
     "groq-llama":     "groq/llama-3.3-70b-versatile",
     "groq-mixtral":   "groq/mixtral-8x7b-32768",
     "mistral-small":  "mistral/mistral-small-latest",
@@ -82,6 +83,13 @@ DEFAULT_FALLBACK_CHAIN: List[str] = [
 
 _MASTER_LOG_DIR = Path("master_log")
 
+# ── Gemini rate-limit guard ───────────────────────────────────────────────────
+# Free tier: 15 RPM hard limit → we target 12 to leave a safety margin.
+_GEMINI_RPM          = 12
+_GEMINI_MIN_CALL_GAP = 4.0   # seconds between Gemini API calls (60/12 = 5s → use 4s to avoid rounding)
+_GEMINI_BACKOFF_DELAYS = [5, 10, 20, 40, 60]  # seconds before each retry
+
+
 
 class LLMManager:
     """
@@ -106,6 +114,10 @@ class LLMManager:
         self.model_name: str = ""
         self._model = None            # LiteLLMModel instance
 
+        # Gemini throttle state (shared across calls within this manager)
+        self._last_gemini_call: float = 0.0
+        self._gemini_lock = threading.Lock()
+
         self._initialize_model(model_name)
 
         # Record in leaderboard which model is driving this session
@@ -116,6 +128,34 @@ class LLMManager:
     def get_model(self):
         """Return the active LiteLLMModel for use with Smolagents agents."""
         return self._model
+
+    def call_with_backoff(self, fn, *args, **kwargs):
+        """
+        Call *fn* with exponential backoff on Gemini 429 / 503 errors.
+
+        Safe to use for any provider — non-Gemini exceptions propagate
+        immediately without any delay.
+
+        Parameters
+        ----------
+        fn     : callable to invoke
+        *args  : positional arguments forwarded to fn
+        **kwargs: keyword arguments forwarded to fn
+        """
+        import litellm
+        delays = _GEMINI_BACKOFF_DELAYS
+        for i, delay in enumerate(delays):
+            try:
+                return fn(*args, **kwargs)
+            except (litellm.RateLimitError,
+                    litellm.ServiceUnavailableError) as exc:
+                if i == len(delays) - 1:
+                    raise   # exhausted all retries
+                self.logger.warning(
+                    f"[RateLimit/503] retry {i+1}/{len(delays)} "
+                    f"after {delay}s — {type(exc).__name__}: {str(exc)[:80]}"
+                )
+                time.sleep(delay)
 
     def test_connection(self) -> bool:
         """
@@ -238,10 +278,20 @@ class LLMManager:
         model_id = MODELS[model_name]
         provider = model_id.split("/")[0]
         api_key  = self._get_api_key(provider)
+        is_gemini = (provider == "gemini")
 
         kwargs: Dict[str, Any] = {"model_id": model_id}
         if api_key:
             kwargs["api_key"] = api_key
+
+        # Gemini — add rate-limit parameters to stay under free tier (15 RPM)
+        if is_gemini:
+            kwargs["max_retries"] = 5
+            kwargs["rpm"]         = _GEMINI_RPM  # 12 RPM target
+            self.logger.info(
+                f"[LLMManager] Gemini model: applying rpm={_GEMINI_RPM}, "
+                f"max_retries=5, min_call_gap={_GEMINI_MIN_CALL_GAP}s"
+            )
 
         # Ollama — local, no API key, custom base URL
         if provider == "ollama":
@@ -255,13 +305,57 @@ class LLMManager:
             kwargs.setdefault("api_base", _LMSTUDIO_BASE_URL)
             kwargs.setdefault("api_key", "lm-studio")  # LM Studio ignores the key
 
-        self._model    = LiteLLMModel(**kwargs)
+        raw_model = LiteLLMModel(**kwargs)
+
+        # For Gemini: wrap the model callable so every call is throttled to
+        # at most _GEMINI_RPM per minute.  Non-Gemini models are unwrapped.
+        if is_gemini:
+            self._model = self._wrap_gemini_throttle(raw_model)
+        else:
+            self._model = raw_model
+
         self.model_name = model_name
 
         self.logger.info(
             f"[LLMManager] Active: {model_name!r}  |  "
             f"model_id={model_id}  |  provider={provider}"
         )
+
+    def _wrap_gemini_throttle(self, raw_model):
+        """
+        Return a thin wrapper around *raw_model* that enforces a minimum
+        gap of _GEMINI_MIN_CALL_GAP seconds between consecutive calls.
+        The wrapper is transparent: it has the same interface as LiteLLMModel
+        (callable + all attributes forwarded via __getattr__).
+
+        Only Gemini calls are throttled; groq / local models bypass this entirely.
+        """
+        manager = self   # capture for closure
+
+        class _ThrottledModel:
+            """Proxy that enforces the 4-second Gemini inter-call gap."""
+
+            def __call__(self_inner, *args, **kwargs):
+                with manager._gemini_lock:
+                    now    = time.monotonic()
+                    gap    = now - manager._last_gemini_call
+                    needed = _GEMINI_MIN_CALL_GAP - gap
+                    if needed > 0:
+                        manager.logger.info(
+                            f"[Gemini throttle] sleeping {needed:.2f}s to respect "
+                            f"{_GEMINI_RPM} RPM limit"
+                        )
+                        time.sleep(needed)
+                    manager._last_gemini_call = time.monotonic()
+
+                return manager.call_with_backoff(raw_model, *args, **kwargs)
+
+            # Forward all attribute access to the underlying model so that
+            # smolagents can read .model_id, .last_input_token_count, etc.
+            def __getattr__(self_inner, name):
+                return getattr(raw_model, name)
+
+        return _ThrottledModel()
 
     @staticmethod
     def _get_api_key(provider: str) -> Optional[str]:

@@ -270,35 +270,59 @@ class AgentOrchestrator:
         # to compress memory before the NEXT step.
         _orch = self
         _token_counts: list[int] = []   # one entry per step
+        # Running total across all steps for the session-level summary
+        _total_tokens: list[int] = [0]  # use list so closure can mutate it
 
         from smolagents.memory import ActionStep as _ActionStep
 
         def _pruning_callback(step, agent=None):
-            """Log input token count and trigger compression every 5 experiments."""
+            """Log input token count (real first, estimated fallback) and trigger compression."""
             if not isinstance(step, _ActionStep):
                 return
 
-            # ── Count tokens ─────────────────────────────────────────────────
-            tok = 0
+            # ── Read REAL token count first ─────────────────────────────────
+            tok: Optional[int] = None
+
+            # Path 1: token_usage on the step object (most reliable)
             if step.token_usage is not None:
                 try:
-                    tok = step.token_usage.input_tokens
-                except AttributeError:
-                    tok = getattr(step.token_usage, "prompt_tokens", 0)
-            elif step.model_input_messages:
-                # Rough estimate: 4 chars ≈ 1 token
-                tok = sum(
-                    len(str(m)) for m in step.model_input_messages
-                ) // 4
+                    tok = int(step.token_usage.input_tokens)
+                except (AttributeError, TypeError):
+                    try:
+                        tok = int(step.token_usage.prompt_tokens)
+                    except (AttributeError, TypeError):
+                        pass
+
+            # Path 2: raw usage inside the ChatMessage (litellm >=1.x)
+            if tok is None and step.model_output_message is not None:
+                msg = step.model_output_message
+                try:
+                    raw_usage = msg.raw.usage
+                    tok = int(getattr(raw_usage, "prompt_tokens",
+                              getattr(raw_usage, "input_tokens", None)))
+                except (AttributeError, TypeError):
+                    pass
+
+            # Path 3: char-based estimate (~4 chars per token)
+            if tok is None:
+                if step.model_input_messages:
+                    tok = sum(len(str(m)) for m in step.model_input_messages) // 4
+                else:
+                    tok = 0
+                source = "est"
+            else:
+                source = "real"
+
             _token_counts.append(tok)
+            _total_tokens[0] += tok
             step_n = len(_token_counts)
             print(
-                f"[Token] Step {step_n:3d} | input_tokens≈{tok:6,} | "
+                f"[Token] Step {step_n:3d} | input_tokens={tok:6,} ({source}) | "
                 f"memory_steps={len(_orch._agent.memory.steps)}",
                 flush=True,
             )
             _orch.logger.info(
-                f"[Context] step={step_n}  input_tokens≈{tok}  "
+                f"[Context] step={step_n}  input_tokens={tok} ({source})  "
                 f"memory_steps={len(_orch._agent.memory.steps)}"
             )
 
@@ -314,7 +338,10 @@ class AgentOrchestrator:
         # Register AFTER the concise reporter (so it runs second)
         self._agent.step_callbacks.register(_ActionStep, _pruning_callback)
 
-        # ── Build prompt ──────────────────────────────────────────────────────
+        # Expose total-token counter so _print_run_summary can access it
+        self._total_tokens_ref = _total_tokens
+
+        # ── Build prompt ───────────────────────────────────────────────────────
         prompt = self._prompt + (
             f"\n\nADDITIONAL CONSTRAINT FOR THIS SESSION:\n"
             f"Maximum experiments allowed: {max_experiments}.\n"
@@ -355,10 +382,51 @@ class AgentOrchestrator:
             self.logger.warning("[Orchestrator] KeyboardInterrupt — stopping.")
 
         except Exception as exc:
-            stop_reason = "error"
-            fin_status  = "crashed"
-            fin_error   = f"{type(exc).__name__}: {exc}"
-            self.logger.error(f"[Orchestrator] Agent crashed: {exc}")
+            # ── Attempt in-place model swap for rate-limit / API errors ────────
+            _swapped = False
+            try:
+                import litellm
+                _api_errors = (
+                    litellm.RateLimitError,
+                    litellm.ServiceUnavailableError,
+                    litellm.APIError,
+                )
+                if isinstance(exc, _api_errors):
+                    self.logger.warning(
+                        f"[Fallback] {type(exc).__name__}: {str(exc)[:100]}"
+                    )
+                    fallback = self.llm.auto_fallback_chain(
+                        chain=["gemini-flash", "groq-llama", "local-qwen"],
+                        test_each=True,
+                    )
+                    if fallback:
+                        # Swap model directly on the running agent — no loop restart
+                        self._agent.model = self.llm.get_model()
+                        self.model_name   = fallback
+                        self.logger.agent(
+                            f"[Fallback] Switched to {fallback} — "
+                            f"continuing without restart"
+                        )
+                        print(
+                            f"\n[Fallback] Switched to {fallback} — agent continues.",
+                            flush=True,
+                        )
+                        _swapped = True
+                    else:
+                        self.logger.error(
+                            "[Fallback] All fallback models failed — raising."
+                        )
+            except Exception as swap_exc:
+                self.logger.error(
+                    f"[Fallback] Swap attempt failed: {swap_exc}"
+                )
+
+            if not _swapped:
+                # Genuine crash — record and exit
+                stop_reason = "error"
+                fin_status  = "crashed"
+                fin_error   = f"{type(exc).__name__}: {exc}"
+                self.logger.error(f"[Orchestrator] Agent crashed: {exc}")
 
         finally:
             # ── Teardown ─────────────────────────────────────────────────────
@@ -594,6 +662,11 @@ class AgentOrchestrator:
         except Exception:
             pass
 
+        # Token stats
+        total_tok = getattr(self, "_total_tokens_ref", [0])[0]
+        gemini_daily_limit = 1_000_000  # Gemini free-tier tokens / day
+        pct_used = (total_tok / gemini_daily_limit * 100) if gemini_daily_limit else 0.0
+
         stop_label = {
             "normal":        "normal — agent finished its task",
             "idle timeout":  "idle timeout (watchdog)",
@@ -610,6 +683,8 @@ class AgentOrchestrator:
         print(f"  Experiments run  : {self._exp_count}")
         print(f"  Total time       : {mins}m {secs}s")
         print(f"  Best val_f1_macro: {best_f1:.4f}  ({best_exp})")
+        print(f"  Total tokens used: {total_tok:,}")
+        print(f"  Gemini free tier : {pct_used:.1f}% of daily 1M limit used")
         if fin_error:
             print(f"  Last error       : {fin_error}")
             if self._session:
@@ -623,5 +698,6 @@ class AgentOrchestrator:
             f"[Orchestrator] RUN SUMMARY: "
             f"stop={stop_reason}  exps={self._exp_count}  "
             f"time={mins}m{secs}s  best_f1={best_f1:.4f}  "
-            f"best_exp={best_exp}"
+            f"best_exp={best_exp}  total_tokens={total_tok}  "
+            f"gemini_pct={pct_used:.1f}%"
         )
