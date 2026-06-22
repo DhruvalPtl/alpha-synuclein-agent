@@ -306,8 +306,12 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
             f" | status={result.get('status')}"
             f" | time={elapsed:.1f}s"
         )
-
-        return _format_result(result)
+        # Log verbose version to file for human inspection, but return the
+        # compact version to the agent to keep its context window small.
+        self.logger.info(
+            f"[ExperimentRunner] Full result:\n{_format_result_verbose(result)}"
+        )
+        return _format_result_compact(result)
 
     # ── Private helpers ────────────────────────────────────────────────────────
 
@@ -483,8 +487,44 @@ def _build_error_result(
     }
 
 
-def _format_result(result: Dict[str, Any]) -> str:
-    """Return a readable summary string of the experiment result."""
+def _format_result_compact(result: Dict[str, Any]) -> str:
+    """
+    Compact one-liner returned TO THE AGENT (~80 tokens).
+    Keeps context window small — no ASCII bars, no decorations.
+    Format:
+      exp_NNN | arch_name | family | val_f1_macro=X.XXXX | No=X.XXX Low=X.XXX Med=X.XXX High=X.XXX | Xs
+    On failure:
+      exp_NNN | arch_name | FAILED | <first 200 chars of error>
+    """
+    exp_id  = result.get("exp_id", "?")
+    arch    = result.get("architecture", "?")
+    family  = result.get("architecture_family", "?")
+    status  = result.get("status", "?")
+
+    if status == "success":
+        f1     = result.get("val_f1_macro", 0.0)
+        t      = result.get("train_time_seconds", 0.0)
+        pc     = result.get("val_f1_per_class", {})
+        label_map = {"0": "No", "1": "Low", "2": "Med", "3": "High",
+                     0: "No",   1: "Low",   2: "Med",   3: "High"}
+        per_cls = " ".join(
+            f"{label_map.get(k, str(k))}={float(v):.3f}"
+            for k, v in sorted(pc.items(), key=lambda x: str(x[0]))
+        )
+        return (
+            f"{exp_id} | {arch} | {family} | "
+            f"val_f1_macro={f1:.4f} | {per_cls} | {t:.1f}s"
+        )
+    else:
+        err = (result.get("error_message") or "unknown error")[:200]
+        return f"{exp_id} | {arch} | FAILED | {err}"
+
+
+def _format_result_verbose(result: Dict[str, Any]) -> str:
+    """
+    Verbose human-readable block written to log files only (not sent to agent).
+    Keeps the original ASCII bar chart format for easy human inspection.
+    """
     lines = [
         "",
         "=" * 62,
@@ -495,7 +535,6 @@ def _format_result(result: Dict[str, Any]) -> str:
         f"  Status     : {result.get('status')}",
         "=" * 62,
     ]
-
     if result.get("status") == "success":
         lines += [
             f"  val_f1_macro : {result.get('val_f1_macro', 0.0):.4f}",
@@ -521,6 +560,9 @@ def _format_result(result: Dict[str, Any]) -> str:
     else:
         err = result.get("error_message", "unknown error")
         lines.append(f"  ERROR: {err[:500]}")
-
     lines.append("=" * 62)
     return "\n".join(lines)
+
+
+# keep old name as alias so any external code importing _format_result still works
+_format_result = _format_result_verbose

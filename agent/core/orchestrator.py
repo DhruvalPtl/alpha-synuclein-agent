@@ -237,7 +237,7 @@ class AgentOrchestrator:
         )
         self._watchdog.start()
 
-        # ── Track experiments via runner wrapper ──────────────────────────────
+        # ── Track experiments + context pruning via runner wrapper ──────────────
         runner_tool = next(
             (t for t in self.tools if isinstance(t, ExperimentRunnerTool)), None
         )
@@ -263,6 +263,56 @@ class AgentOrchestrator:
                 return result
 
             runner_tool.forward = _tracked_forward
+
+        # ── Token-count logger + memory-pruning step_callback ─────────────────
+        # This callback fires AFTER each agent step (ActionStep), which means
+        # we can read the token usage logged by smolagents and decide whether
+        # to compress memory before the NEXT step.
+        _orch = self
+        _token_counts: list[int] = []   # one entry per step
+
+        from smolagents.memory import ActionStep as _ActionStep
+
+        def _pruning_callback(step, agent=None):
+            """Log input token count and trigger compression every 5 experiments."""
+            if not isinstance(step, _ActionStep):
+                return
+
+            # ── Count tokens ─────────────────────────────────────────────────
+            tok = 0
+            if step.token_usage is not None:
+                try:
+                    tok = step.token_usage.input_tokens
+                except AttributeError:
+                    tok = getattr(step.token_usage, "prompt_tokens", 0)
+            elif step.model_input_messages:
+                # Rough estimate: 4 chars ≈ 1 token
+                tok = sum(
+                    len(str(m)) for m in step.model_input_messages
+                ) // 4
+            _token_counts.append(tok)
+            step_n = len(_token_counts)
+            print(
+                f"[Token] Step {step_n:3d} | input_tokens≈{tok:6,} | "
+                f"memory_steps={len(_orch._agent.memory.steps)}",
+                flush=True,
+            )
+            _orch.logger.info(
+                f"[Context] step={step_n}  input_tokens≈{tok}  "
+                f"memory_steps={len(_orch._agent.memory.steps)}"
+            )
+
+            # ── Compress every 5 experiments ─────────────────────────────────
+            if _orch._exp_count > 0 and _orch._exp_count % 5 == 0:
+                # Only compress once per 5-exp boundary, not on every step
+                # during the same boundary.  Use a marker attribute.
+                marker = f"_compressed_at_{_orch._exp_count}"
+                if not getattr(_orch, marker, False):
+                    setattr(_orch, marker, True)
+                    _orch._compress_memory()
+
+        # Register AFTER the concise reporter (so it runs second)
+        self._agent.step_callbacks.register(_ActionStep, _pruning_callback)
 
         # ── Build prompt ──────────────────────────────────────────────────────
         prompt = self._prompt + (
@@ -389,6 +439,115 @@ class AgentOrchestrator:
         }
 
     # ── Private helpers ───────────────────────────────────────────────────────
+
+    def _compress_memory(self) -> None:
+        """
+        Compress agent memory every 5 experiments to prevent unbounded
+        context growth.
+
+        Steps
+        -----
+        1. Read the last 5 experiment summaries from leaderboard.json.
+        2. Ask the LLM (small direct call, not part of agent loop) to
+           produce a ≤150-word digest.
+        3. Reset agent memory (clears all steps, keeps system prompt).
+        4. Re-inject the digest + current leaderboard snapshot as a
+           synthetic assistant message so the agent remembers what happened.
+        """
+        self.logger.agent(
+            f"[Orchestrator] Compressing memory after {self._exp_count} experiments."
+        )
+
+        # \u2500\u2500 1. Gather last 5 experiments from leaderboard \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\n        recent_exps = []
+        best_f1   = 0.0
+        best_exp  = "none"
+        try:
+            if _LEADERBOARD_PATH.exists():
+                lb = json.loads(_LEADERBOARD_PATH.read_text())
+                all_exps  = lb.get("experiments", [])
+                recent_exps = all_exps[-5:]      # last 5
+                best_f1   = lb.get("best_val_f1_macro", 0.0)
+                best_exp  = lb.get("best_experiment", "none")
+        except Exception as exc:
+            self.logger.warning(f"[Orchestrator] Could not read leaderboard for compression: {exc}")
+
+        if not recent_exps:
+            self.logger.warning("[Orchestrator] No experiments to compress yet; skipping.")
+            return
+
+        # \u2500\u2500 2. Build the summarisation prompt \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        exp_lines = []
+        for e in recent_exps:
+            status = e.get("status", "?")
+            f1     = e.get("val_f1_macro", 0.0)
+            arch   = e.get("architecture", "?")
+            family = e.get("architecture_family", "?")
+            pc     = e.get("val_f1_per_class", {})
+            pc_str = " ".join(
+                f"{k}={float(v):.3f}" for k, v in sorted(pc.items(), key=lambda x: str(x[0]))
+            )
+            exp_lines.append(f"  - {arch} ({family}): f1={f1:.4f} [{status}] {pc_str}")
+
+        summarise_prompt = (
+            "You are summarising ML experiment history for an autonomous research agent.\n"
+            "Summarise the following experiments in UNDER 150 words:\n"
+            "- What architectures were tried\n"
+            "- Their val_f1_macro scores\n"
+            "- Key insight learned (one sentence)\n"
+            "- What the current best is\n\n"
+            "Experiments:\n"
+            + "\n".join(exp_lines)
+            + f"\n\nCurrent best: {best_exp} (val_f1_macro={best_f1:.4f})\n"
+            "Reply with ONLY the summary, nothing else."
+        )
+
+        # \u2500\u2500 3. Ask LLM directly (small call outside agent loop) \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        summary = ""
+        try:
+            messages = [{"role": "user", "content": summarise_prompt}]
+            response = self.llm.get_model()(messages)
+            if hasattr(response, "content"):
+                summary = str(response.content).strip()
+            else:
+                summary = str(response).strip()
+            self.logger.agent(
+                f"[Orchestrator] Compression summary ({len(summary.split())} words):\n{summary}"
+            )
+        except Exception as exc:
+            self.logger.warning(f"[Orchestrator] LLM compression call failed: {exc}")
+            # Fall back to a simple bullet list
+            summary = "Previous experiments:\n" + "\n".join(exp_lines)
+            summary += f"\nBest so far: {best_exp} (val_f1_macro={best_f1:.4f})"
+
+        # \u2500\u2500 4. Reset agent memory and re-inject summary \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+        try:
+            from smolagents.memory import TaskStep
+
+            # Clear all steps (keeps system_prompt inside AgentMemory)
+            self._agent.memory.reset()
+
+            # Re-inject as a synthetic task step so the agent has context
+            # for the next reasoning step without the full history.
+            injected_task = (
+                f"[MEMORY COMPRESSION — {self._exp_count} experiments completed]\n\n"
+                f"{summary}\n\n"
+                f"Current leaderboard best: {best_exp}  val_f1_macro={best_f1:.4f}\n"
+                "Continue your research from this point forward."
+            )
+            self._agent.memory.steps.append(TaskStep(task=injected_task))
+
+            mem_after = len(self._agent.memory.steps)
+            print(
+                f"\n[Compress] Memory reset at exp#{self._exp_count} → "
+                f"{mem_after} step(s) in memory (summary injected)\n",
+                flush=True,
+            )
+            self.logger.agent(
+                f"[Orchestrator] Memory compressed. steps_after={mem_after}"
+            )
+        except Exception as exc:
+            self.logger.error(f"[Orchestrator] Memory reset failed: {exc}")
+
 
     def _elapsed(self) -> str:
         if self._run_start is None:
