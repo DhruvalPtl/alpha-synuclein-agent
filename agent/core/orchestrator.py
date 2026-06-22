@@ -38,6 +38,36 @@ _STATE_PATH       = Path("master_log/orchestrator_state.json")
 
 _SHORT_PROMPT_MODELS = {"groq-mixtral", "mistral-small"}
 
+_AUTHORIZED_IMPORTS = [
+    "numpy",
+    "numpy.*",
+    "pandas",
+    "pandas.*",
+    "scipy",
+    "scipy.*",
+    "sklearn",
+    "sklearn.*",
+    "xgboost",
+    "xgboost.*",
+    "lightgbm",
+    "lightgbm.*",
+    "imblearn",
+    "imblearn.*",
+    "torch",
+    "torch.*",
+    "matplotlib",
+    "matplotlib.*",
+    "seaborn",
+    "seaborn.*",
+    "json",
+    "os",
+    "sys",
+    "pathlib",
+    "pickle",
+    "yaml",
+    "joblib",
+]
+
 
 class AgentOrchestrator:
     """
@@ -103,10 +133,11 @@ class AgentOrchestrator:
         try:
             from smolagents import CodeAgent
             self._agent = CodeAgent(
-                tools          = self.tools,
-                model          = self.llm.get_model(),
-                max_steps      = max_steps,
-                verbosity_level = _vlevel,
+                tools                         = self.tools,
+                model                         = self.llm.get_model(),
+                max_steps                     = max_steps,
+                verbosity_level               = _vlevel,
+                additional_authorized_imports = _AUTHORIZED_IMPORTS,
             )
             self.logger.info(
                 f"[Orchestrator] CodeAgent ready. "
@@ -324,10 +355,11 @@ class AgentOrchestrator:
         try:
             from smolagents import CodeAgent
             self._agent = CodeAgent(
-                tools           = self.tools,
-                model           = self.llm.get_model(),
-                max_steps       = 500,
-                verbosity_level = _vlevel,
+                tools                         = self.tools,
+                model                         = self.llm.get_model(),
+                max_steps                     = 500,
+                verbosity_level               = _vlevel,
+                additional_authorized_imports = _AUTHORIZED_IMPORTS,
             )
             self.logger.agent(f"[Orchestrator] Switched to {model_name}.")
         except Exception as exc:

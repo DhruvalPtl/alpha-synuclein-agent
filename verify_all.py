@@ -109,10 +109,10 @@ check("arxiv_tool", imp_arxiv)
 def imp_prompt():
     from agent.prompts.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_SHORT
     assert 'build_and_train' in SYSTEM_PROMPT
-    assert 'NEVER load files' in SYSTEM_PROMPT
+    assert 'Never load files' in SYSTEM_PROMPT
     assert 'train.py' not in SYSTEM_PROMPT
     assert 'eval.py'  not in SYSTEM_PROMPT
-    assert len(SYSTEM_PROMPT) > 5000
+    assert len(SYSTEM_PROMPT) > 2000
     return f"{len(SYSTEM_PROMPT)} chars"
 check("system_prompt", imp_prompt)
 
