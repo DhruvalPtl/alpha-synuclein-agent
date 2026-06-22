@@ -69,6 +69,123 @@ _AUTHORIZED_IMPORTS = [
 ]
 
 
+# ── Explore / Exploit controller ───────────────────────────────────────────────
+
+class ExploreExploitController:
+    """
+    Injects adaptive phase instructions into the agent's task prompt.
+
+    EXPLORE phase (first explore_budget experiments):
+      Monitors which architecture families have been tried consecutively.
+      If the same family appears 3+ times in a row, it explicitly demands
+      a switch and surfaces the least-tried family.
+
+    EXPLOIT phase (remaining experiments):
+      Identifies the top-N families by best val_f1_macro and encourages
+      deep tuning, ensembles, and hyperparameter search within them.
+
+    Parameters
+    ----------
+    explore_ratio  : float  — fraction of total budget to spend in explore phase
+    total_budget   : int    — total experiment budget (max_experiments)
+    """
+
+    def __init__(self, explore_ratio: float = 0.6, total_budget: int = 200) -> None:
+        self.explore_ratio  = explore_ratio
+        self.explore_budget = max(1, int(total_budget * explore_ratio))
+        self.exploit_budget = max(1, total_budget - self.explore_budget)
+        self.phase: str     = "explore"
+
+    def get_phase_instruction(self, leaderboard: dict) -> str:
+        """
+        Return a short directive string based on current leaderboard state.
+        Injected into the task prompt at each run().
+        """
+        total_runs = leaderboard.get("total_runs", 0)
+        exps       = leaderboard.get("experiments", [])
+
+        if total_runs < self.explore_budget:
+            return self._explore_instruction(total_runs, exps)
+        else:
+            self.phase = "exploit"
+            return self._exploit_instruction(total_runs, exps)
+
+    # ── Private helpers ────────────────────────────────────────────────────────
+
+    def _explore_instruction(self, total_runs: int, exps: list) -> str:
+        self.phase = "explore"
+        families_tried = list(dict.fromkeys(
+            e.get("architecture_family", "?") for e in exps
+        ))
+        least_tried = self._find_least_tried(exps)
+
+        # Count consecutive same-family at the tail
+        consecutive = 0
+        if exps:
+            last_fam = exps[-1].get("architecture_family", "")
+            for e in reversed(exps):
+                if e.get("architecture_family") == last_fam:
+                    consecutive += 1
+                else:
+                    break
+
+        remaining = self.explore_budget - total_runs
+        if consecutive >= 3:
+            return (
+                f"\n\n[EXPLORE PHASE {total_runs}/{self.explore_budget}] "
+                f"You have run {consecutive} consecutive experiments in the "
+                f"'{last_fam}' family. Switch to a DIFFERENT architecture family now. "
+                f"Least explored: {least_tried}. "
+                f"{remaining} explore-budget experiments left."
+            )
+        return (
+            f"\n\n[EXPLORE PHASE {total_runs}/{self.explore_budget}] "
+            f"Prioritize architectures you haven't explored yet. "
+            f"Families tried: {families_tried}. "
+            f"Least explored: {least_tried}. "
+            f"{remaining} explore-budget experiments left."
+        )
+
+    def _exploit_instruction(self, total_runs: int, exps: list) -> str:
+        top_families = self._get_top_families(exps, n=3)
+        exploit_so_far = total_runs - self.explore_budget
+        remaining      = self.exploit_budget - exploit_so_far
+        return (
+            f"\n\n[EXPLOIT PHASE {exploit_so_far}/{self.exploit_budget}] "
+            f"Exploration complete. Focus on these top families: {top_families}. "
+            f"Tune hyperparameters aggressively, try ensembles of top models, "
+            f"and push these architectures to their limits. "
+            f"{max(0, remaining)} exploit-budget experiments left."
+        )
+
+    @staticmethod
+    def _find_least_tried(exps: list) -> str:
+        """Return the architecture family with the fewest experiments."""
+        from collections import Counter
+        counts = Counter(e.get("architecture_family", "?") for e in exps)
+        all_families = [
+            "classical_ml", "linear", "neural_network", "deep_residual",
+            "ensemble_stack", "attention_based", "automl",
+        ]
+        # Find families not yet tried at all first
+        for fam in all_families:
+            if fam not in counts:
+                return fam
+        # Otherwise return the one with fewest runs
+        return min(counts, key=counts.get)
+
+    @staticmethod
+    def _get_top_families(exps: list, n: int = 3) -> list:
+        """Return top-N families by best val_f1_macro."""
+        best: dict[str, float] = {}
+        for e in exps:
+            fam = e.get("architecture_family", "?")
+            f1  = e.get("val_f1_macro", 0.0)
+            if fam not in best or f1 > best[fam]:
+                best[fam] = f1
+        return sorted(best, key=best.get, reverse=True)[:n]
+
+
 class AgentOrchestrator:
     """
     Wires all components into a single autonomous research loop.
@@ -96,6 +213,7 @@ class AgentOrchestrator:
         verbosity:          str  = "concise",
         max_idle_seconds:   int  = 300,
         max_total_seconds:  int  = 3600,
+        explore_ratio:      float = 0.6,    # fraction of budget for exploration phase
     ) -> None:
         self.logger = TeeLogger(master_log_dir="master_log")
         self.logger.agent(
@@ -184,6 +302,7 @@ class AgentOrchestrator:
         self._watchdog:   Optional[RunWatchdog] = None
         self._reporter:   Optional[ConciseStepReporter] = None
         self._exp_count   = 0
+        self._explore_ratio = explore_ratio  # stored for run() to use
 
         self.logger.agent("[Orchestrator] Ready. Call run() to start.")
 
@@ -361,13 +480,27 @@ class AgentOrchestrator:
         self._total_tokens_ref = _total_tokens
 
         # ── Build prompt ───────────────────────────────────────────────────────
+        # Initialise explore/exploit controller for this run session
+        _ee_ctrl = ExploreExploitController(
+            explore_ratio = self._explore_ratio,
+            total_budget  = max_experiments,
+        )
+        # Read current leaderboard state for phase instruction
+        _lb_state: dict = {}
+        try:
+            if _LEADERBOARD_PATH.exists():
+                _lb_state = json.loads(_LEADERBOARD_PATH.read_text())
+        except Exception:
+            pass
+        _phase_instruction = _ee_ctrl.get_phase_instruction(_lb_state)
+
         prompt = self._prompt + (
             f"\n\nADDITIONAL CONSTRAINT FOR THIS SESSION:\n"
             f"Maximum experiments allowed: {max_experiments}.\n"
             f"Session ID: {self._session.session_id}\n"
             f"Current time: {datetime.datetime.now().isoformat(timespec='seconds')}\n"
             f"Idle timeout: {idle_limit}s    Total timeout: {total_limit}s\n"
-        )
+        ) + _phase_instruction
 
         self.logger.agent(
             f"[Orchestrator] Launching agent. "
