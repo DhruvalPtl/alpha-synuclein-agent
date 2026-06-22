@@ -88,12 +88,46 @@ DEFAULT_FALLBACK_CHAIN: List[str] = [
 ]
 
 _MASTER_LOG_DIR = Path("master_log")
+_TOKEN_BUDGET_PATH = _MASTER_LOG_DIR / "token_budget.json"
 
-# ── Gemini rate-limit guard ───────────────────────────────────────────────────
-# Free tier: 15 RPM hard limit → we target 12 to leave a safety margin.
-_GEMINI_RPM          = 5
-_GEMINI_MIN_CALL_GAP = 11.0   # seconds between Gemini API calls (60/5 = 12s → use 11s to avoid rounding)
-_GEMINI_BACKOFF_DELAYS = [5, 10, 20, 40, 60]  # seconds before each retry
+# ── Per-provider rate limits ───────────────────────────────────────────────────
+# Free-tier RPM limits — we target slightly below to leave a safety margin.
+PROVIDER_RPM_LIMITS: dict = {
+    "gemini":    5,       # free tier 15 RPM → target 5 (very conservative)
+    "groq":      25,      # free tier 30 RPM → target 25
+    "cerebras":  25,
+    "mistral":   30,
+    "openrouter": 20,
+    "ollama":    9999,    # local — unlimited
+    "openai":    9999,    # LM Studio / llamafile — local, unlimited
+}
+
+# Minimum seconds between calls = 60 / RPM_LIMIT
+def _min_gap(provider: str) -> float:
+    rpm = PROVIDER_RPM_LIMITS.get(provider, 30)
+    return 60.0 / max(rpm, 1)
+
+
+# ── Daily token budgets ────────────────────────────────────────────────────────
+DAILY_LIMITS: dict = {
+    "gemini":    1_000_000,   # Google free tier 1M tokens/day
+    "groq":        100_000,   # Groq free tier ~100K/day
+    "cerebras":    100_000,
+    "mistral":     100_000,
+    "ollama":  999_999_999,   # local — no limit
+    "openai":  999_999_999,   # local — no limit
+}
+
+_WARN_THRESHOLD  = 0.80   # warn at 80% of daily limit
+_SWITCH_THRESHOLD = 0.95  # auto-switch provider at 95% of daily limit
+
+# ── Backoff delays (shared, used for all providers) ───────────────────────────
+_BACKOFF_DELAYS = [5, 10, 20, 40, 60]   # seconds before each retry
+
+# Legacy aliases kept for backward compatibility
+_GEMINI_RPM          = PROVIDER_RPM_LIMITS["gemini"]
+_GEMINI_MIN_CALL_GAP = _min_gap("gemini")
+_GEMINI_BACKOFF_DELAYS = _BACKOFF_DELAYS
 
 
 
@@ -120,9 +154,12 @@ class LLMManager:
         self.model_name: str = ""
         self._model = None            # LiteLLMModel instance
 
-        # Gemini throttle state (shared across calls within this manager)
+        # Per-provider throttle tracking  {provider: last_call_monotonic}
+        self._provider_last_call: dict[str, float] = {}
+        self._provider_lock = threading.Lock()
+        # Backward-compat alias
         self._last_gemini_call: float = 0.0
-        self._gemini_lock = threading.Lock()
+        self._gemini_lock = self._provider_lock
 
         self._initialize_model(model_name)
 
@@ -137,10 +174,7 @@ class LLMManager:
 
     def call_with_backoff(self, fn, *args, **kwargs):
         """
-        Call *fn* with exponential backoff on Gemini 429 / 503 errors.
-
-        Safe to use for any provider — non-Gemini exceptions propagate
-        immediately without any delay.
+        Call *fn* with exponential backoff on 429 / 503 / APIError for ANY provider.
 
         Parameters
         ----------
@@ -149,19 +183,80 @@ class LLMManager:
         **kwargs: keyword arguments forwarded to fn
         """
         import litellm
-        delays = _GEMINI_BACKOFF_DELAYS
+        delays = _BACKOFF_DELAYS
         for i, delay in enumerate(delays):
             try:
                 return fn(*args, **kwargs)
-            except (litellm.RateLimitError,
-                    litellm.ServiceUnavailableError) as exc:
+            except (
+                litellm.RateLimitError,
+                litellm.ServiceUnavailableError,
+                litellm.APIError,
+            ) as exc:
                 if i == len(delays) - 1:
                     raise   # exhausted all retries
                 self.logger.warning(
-                    f"[RateLimit/503] retry {i+1}/{len(delays)} "
+                    f"[Backoff] retry {i+1}/{len(delays)} "
                     f"after {delay}s — {type(exc).__name__}: {str(exc)[:80]}"
                 )
                 time.sleep(delay)
+
+    def track_tokens(self, provider: str, tokens: int) -> None:
+        """
+        Record token usage for *provider* in token_budget.json.
+        Warns at _WARN_THRESHOLD and logs alert at _SWITCH_THRESHOLD.
+        """
+        import datetime as _dt
+        try:
+            _MASTER_LOG_DIR.mkdir(parents=True, exist_ok=True)
+            today = _dt.date.today().isoformat()
+            budget: dict = {}
+            if _TOKEN_BUDGET_PATH.exists():
+                try:
+                    budget = json.loads(_TOKEN_BUDGET_PATH.read_text())
+                except Exception:
+                    budget = {}
+            # Reset if new day
+            if budget.get("date") != today:
+                budget = {"date": today, "providers": {}}
+            pdata = budget.setdefault("providers", {}).setdefault(
+                provider, {"tokens_used": 0, "warned_80": False, "warned_95": False}
+            )
+            pdata["tokens_used"] += tokens
+            used   = pdata["tokens_used"]
+            limit  = DAILY_LIMITS.get(provider, 100_000)
+            frac   = used / limit if limit else 0.0
+
+            if frac >= _SWITCH_THRESHOLD and not pdata.get("warned_95"):
+                pdata["warned_95"] = True
+                self.logger.warning(
+                    f"[DailyBudget] {provider}: {used:,}/{limit:,} tokens "
+                    f"({frac*100:.0f}%) — approaching limit! Consider switching provider."
+                )
+            elif frac >= _WARN_THRESHOLD and not pdata.get("warned_80"):
+                pdata["warned_80"] = True
+                self.logger.warning(
+                    f"[DailyBudget] {provider}: {used:,}/{limit:,} tokens "
+                    f"({frac*100:.0f}%) — 80% of daily limit used."
+                )
+
+            _TOKEN_BUDGET_PATH.write_text(json.dumps(budget, indent=2))
+        except Exception as e:
+            self.logger.warning(f"[DailyBudget] Could not update budget: {e}")
+
+    def get_daily_usage(self, provider: str) -> tuple:
+        """Return (tokens_used_today, daily_limit, fraction_used) for *provider*."""
+        import datetime as _dt
+        today = _dt.date.today().isoformat()
+        try:
+            if _TOKEN_BUDGET_PATH.exists():
+                budget = json.loads(_TOKEN_BUDGET_PATH.read_text())
+                if budget.get("date") == today:
+                    used  = budget.get("providers", {}).get(provider, {}).get("tokens_used", 0)
+                    limit = DAILY_LIMITS.get(provider, 100_000)
+                    return used, limit, used / limit if limit else 0.0
+        except Exception:
+            pass
+        return 0, DAILY_LIMITS.get(provider, 100_000), 0.0
 
     def test_connection(self) -> bool:
         """
@@ -319,10 +414,12 @@ class LLMManager:
 
         raw_model = LiteLLMModel(**kwargs)
 
-        # For Gemini: wrap the model callable so every call is throttled to
-        # at most _GEMINI_RPM per minute.  Non-Gemini models are unwrapped.
-        if is_gemini:
-            self._model = self._wrap_gemini_throttle(raw_model)
+        # Wrap with per-provider throttle for any provider that has a meaningful
+        # RPM limit.  Local providers (ollama, openai/llamafile/lmstudio) have
+        # rpm=9999 so _min_gap ≈ 0 and the wrapper is essentially a no-op.
+        gap = _min_gap(provider)
+        if gap > 0.1:  # only install wrapper if gap is non-trivial
+            self._model = self._wrap_provider_throttle(raw_model, provider, gap)
         else:
             self._model = raw_model
 
@@ -333,41 +430,48 @@ class LLMManager:
             f"model_id={model_id}  |  provider={provider}"
         )
 
-    def _wrap_gemini_throttle(self, raw_model):
+    def _wrap_provider_throttle(self, raw_model, provider: str, min_gap: float):
         """
-        Return a thin wrapper around *raw_model* that enforces a minimum
-        gap of _GEMINI_MIN_CALL_GAP seconds between consecutive calls.
-        The wrapper is transparent: it has the same interface as LiteLLMModel
-        (callable + all attributes forwarded via __getattr__).
+        Return a thin proxy around *raw_model* that enforces *min_gap* seconds
+        between consecutive calls for this *provider*.
 
-        Only Gemini calls are throttled; groq / local models bypass this entirely.
+        The proxy is transparent: all attributes are forwarded via __getattr__.
+        Backoff for 429/503/APIError is applied inside via call_with_backoff.
         """
-        manager = self   # capture for closure
+        manager = self
+        rpm_display = PROVIDER_RPM_LIMITS.get(provider, "?")
 
         class _ThrottledModel:
-            """Proxy that enforces the 4-second Gemini inter-call gap."""
+            """Per-provider inter-call gap enforcer."""
 
             def __call__(self_inner, *args, **kwargs):
-                with manager._gemini_lock:
-                    now    = time.monotonic()
-                    gap    = now - manager._last_gemini_call
-                    needed = _GEMINI_MIN_CALL_GAP - gap
+                with manager._provider_lock:
+                    now  = time.monotonic()
+                    last = manager._provider_last_call.get(provider, 0.0)
+                    gap  = now - last
+                    needed = min_gap - gap
                     if needed > 0:
                         manager.logger.info(
-                            f"[Gemini throttle] sleeping {needed:.2f}s to respect "
-                            f"{_GEMINI_RPM} RPM limit"
+                            f"[Throttle:{provider}] sleeping {needed:.2f}s "
+                            f"(target {rpm_display} RPM)"
                         )
                         time.sleep(needed)
-                    manager._last_gemini_call = time.monotonic()
+                    manager._provider_last_call[provider] = time.monotonic()
+                    # keep backward-compat alias
+                    if provider == "gemini":
+                        manager._last_gemini_call = manager._provider_last_call[provider]
 
                 return manager.call_with_backoff(raw_model, *args, **kwargs)
 
-            # Forward all attribute access to the underlying model so that
-            # smolagents can read .model_id, .last_input_token_count, etc.
             def __getattr__(self_inner, name):
                 return getattr(raw_model, name)
 
         return _ThrottledModel()
+
+    # Backward-compat alias
+    def _wrap_gemini_throttle(self, raw_model):
+        """Deprecated — use _wrap_provider_throttle."""
+        return self._wrap_provider_throttle(raw_model, "gemini", _GEMINI_MIN_CALL_GAP)
 
     @staticmethod
     def _get_api_key(provider: str) -> Optional[str]:
