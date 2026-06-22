@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Optional
 
 from agent.core.tee_logger import TeeLogger
-from agent.core.llm_manager import LLMManager
+from agent.core.llm_manager import LLMManager, TwoBrainManager
 from agent.core.session_manager import SessionManager
 from agent.core.concise_logger import ConciseStepReporter
 from agent.core.watchdog import RunWatchdog
@@ -88,6 +88,9 @@ class AgentOrchestrator:
     def __init__(
         self,
         model_name:         str  = "local-qwen",
+        reasoning_model:    Optional[str] = None,   # two-brain: overrides model_name for reasoning
+        coding_model:       Optional[str] = None,   # two-brain: dedicated coder model
+        two_brain:          bool = False,
         use_short_prompt:   bool = False,
         max_steps:          int  = 500,
         verbosity:          str  = "concise",
@@ -104,8 +107,24 @@ class AgentOrchestrator:
         self.max_idle_seconds   = max_idle_seconds
         self.max_total_seconds  = max_total_seconds
 
-        # ── LLM ──────────────────────────────────────────────────────────────
-        self.llm = LLMManager(model_name=model_name)
+        # ── LLM ───────────────────────────────────────────────────────────────
+        _r_model = reasoning_model or model_name
+        if two_brain and coding_model and coding_model != _r_model:
+            self.two_brain = TwoBrainManager(
+                reasoning_model = _r_model,
+                coding_model    = coding_model,
+            )
+            self.llm       = self.two_brain.reasoner
+            _agent_model   = self.two_brain.get_reasoning_model()
+            model_name     = _r_model
+            self.logger.agent(
+                f"[Orchestrator] Two-brain mode: reasoning={_r_model}  coding={coding_model}"
+            )
+        else:
+            self.two_brain = None
+            self.llm       = LLMManager(model_name=_r_model)
+            _agent_model   = self.llm.get_model()
+            model_name     = _r_model
 
         # ── Tools ─────────────────────────────────────────────────────────────
         _arxiv = ArxivTool(llm_model=self.llm.get_model())
@@ -134,7 +153,7 @@ class AgentOrchestrator:
             from smolagents import CodeAgent
             self._agent = CodeAgent(
                 tools                         = self.tools,
-                model                         = self.llm.get_model(),
+                model                         = _agent_model,
                 max_steps                     = max_steps,
                 verbosity_level               = _vlevel,
                 additional_authorized_imports = _AUTHORIZED_IMPORTS,

@@ -395,3 +395,102 @@ class LLMManager:
                 json.dump(lb, fh, indent=2)
         except Exception:
             pass   # never crash because of leaderboard write
+
+
+# ── Two-Brain Manager ──────────────────────────────────────────────────────────
+
+class TwoBrainManager:
+    """
+    Separates the reasoning brain from the coding brain.
+
+    In many scenarios the best arrangement is:
+      - A strong cloud reasoning model (Groq Llama, Gemini) for planning,
+        analysis, and deciding what to try next  (~300 tokens/step, cheap)
+      - A powerful local coder (Qwen2.5-Coder via Ollama) for writing the
+        actual model_code  (free, fast, high quality)
+
+    When coding_model is None the class runs in single-brain mode, using
+    the reasoning model for everything (identical to plain LLMManager).
+
+    Parameters
+    ----------
+    reasoning_model : str   — key from MODELS registry (used by agent loop)
+    coding_model    : str | None  — key from MODELS (used for code generation)
+    env_path        : str   — path to .env file
+
+    Usage
+    -----
+        tb = TwoBrainManager("groq-llama", "local-qwen")
+        code = tb.generate_code("Write a RandomForest with SMOTE...")
+    """
+
+    def __init__(
+        self,
+        reasoning_model: str,
+        coding_model: Optional[str] = None,
+        env_path: str = ".env",
+    ) -> None:
+        self.reasoning_model_name = reasoning_model
+        self.coding_model_name    = coding_model or reasoning_model
+        self._single_brain        = (coding_model is None or
+                                     coding_model == reasoning_model)
+
+        self.reasoner = LLMManager(model_name=reasoning_model, env_path=env_path)
+        if self._single_brain:
+            self.coder = self.reasoner   # same object — no extra cost
+        else:
+            self.coder = LLMManager(model_name=self.coding_model_name, env_path=env_path)
+
+        self.reasoner.logger.agent(
+            f"[TwoBrainManager] reasoning={reasoning_model}  "
+            f"coding={self.coding_model_name}  "
+            f"single_brain={self._single_brain}"
+        )
+
+    # ── Public API ─────────────────────────────────────────────────────────────
+
+    def get_reasoning_model(self):
+        """Return the reasoning LiteLLMModel for the main smolagents agent loop."""
+        return self.reasoner.get_model()
+
+    def get_coding_model(self):
+        """Return the coding LiteLLMModel (may be same as reasoning in single-brain)."""
+        return self.coder.get_model()
+
+    def generate_code(self, prompt: str) -> str:
+        """
+        Call the coding model DIRECTLY (not via the agent loop) and return
+        only the code string.  Strips markdown code fences if present.
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are an expert Python ML engineer. "
+                    "Return ONLY the Python code, no explanations, no markdown fences."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ]
+        response = self.coder.get_model()(messages)
+        code = str(response.content).strip() if hasattr(response, "content") else str(response).strip()
+        # Strip markdown fences
+        if code.startswith("```"):
+            lines = code.splitlines()
+            code = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+        return code
+
+    def switch_reasoning_model(self, model_name: str) -> None:
+        """Hot-swap the reasoning model mid-session."""
+        self.reasoner.switch_model(model_name)
+        self.reasoning_model_name = model_name
+
+    def auto_fallback_chain(self, **kwargs) -> Optional[str]:
+        """Delegate fallback to the reasoning manager."""
+        return self.reasoner.auto_fallback_chain(**kwargs)
+
+    def get_model(self):
+        """Compatibility shim — returns reasoning model (so TwoBrainManager
+        can be passed anywhere LLMManager is expected)."""
+        return self.get_reasoning_model()
+
