@@ -8,14 +8,18 @@ This document provides a complete inventory of the project structure, including 
 .
 ├── .env
 ├── .gitignore
+├── DEPLOYMENT.md
+├── PROJECT_MAP.md
 ├── agent
 │   ├── __init__.py
 │   ├── core
 │   │   ├── __init__.py
 │   │   ├── concise_logger.py
 │   │   ├── env_config.py
+│   │   ├── llamafile_manager.py
 │   │   ├── llm_manager.py
 │   │   ├── orchestrator.py
+│   │   ├── platform_detector.py
 │   │   ├── session_manager.py
 │   │   ├── tee_logger.py
 │   │   └── watchdog.py
@@ -57,8 +61,7 @@ This document provides a complete inventory of the project structure, including 
 │       └── val.pkl
 ├── experiments
 │   ├── .gitkeep
-│   └── exp_001_BOOK-RNCKA44N53_logistic_regression
-│       ├── artifacts
+│   └── exp_001_laptop_random_forest_baseline
 │       ├── config.yaml
 │       ├── model.py
 │       ├── results.json
@@ -79,15 +82,13 @@ This document provides a complete inventory of the project structure, including 
 ├── run_pipeline.py
 ├── sessions
 │   ├── .gitkeep
-│   ├── 2026-06-19_18-42-03
-│   │   ├── heartbeat.json
-│   │   ├── session_log.log
-│   │   └── session_summary.json
-│   └── 2026-06-19_18-45-14
+│   └── 2026-06-23_11-42-18
 │       ├── heartbeat.json
 │       ├── session_log.log
 │       └── session_summary.json
 ├── test_dev_reset.py
+├── test_guard.py
+├── test_guard_v2.py
 ├── verify_all.py
 ├── verify_session.py
 └── verify_sync.py
@@ -103,7 +104,6 @@ This document provides a complete inventory of the project structure, including 
 - **Functions defined**: None
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**: None
-- **Last modified**: Thu Jun 18 15:59:10 2026 +0530
 
 ### agent/core/__init__.py
 - **Purpose**: Package initializer for core agent module, importing and exposing logger and LLM manager components.
@@ -113,7 +113,6 @@ This document provides a complete inventory of the project structure, including 
   - `agent/core/llm_manager.py`
   - `agent/core/tee_logger.py`
 - **Imported BY which other project files**: None
-- **Last modified**: Fri Jun 19 11:48:12 2026 +0530
 
 ### agent/core/concise_logger.py
 - **Purpose**: Overwrites Jupyter display lines to provide concise, real-time logging of active agent steps while allowing full output logs to stream to file.
@@ -129,10 +128,9 @@ This document provides a complete inventory of the project structure, including 
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**:
   - `agent/core/orchestrator.py`
-- **Last modified**: Fri Jun 19 15:25:44 2026 +0530
 
 ### agent/core/env_config.py
-- **Purpose**: Configures workspace environment variables, handles path setup, and detects whether running locally or in Google Cloud.
+- **Purpose**: Configures workspace environment variables, handles path setup, and detects whether running locally (with WSL path support) or in Google Cloud.
 - **Classes defined**: None
 - **Functions defined**:
   - `find_project_root(start)`
@@ -141,12 +139,31 @@ This document provides a complete inventory of the project structure, including 
   - `_detect_cloud()`
   - `_print_cloud_info()`
   - `get_paths(root)`
-- **Imports FROM other project files**: None
+- **Imports FROM other project files**:
+  - `agent/core/platform_detector.py`
 - **Imported BY which other project files**: None
-- **Last modified**: Fri Jun 19 12:36:20 2026 +0530
+
+### agent/core/llamafile_manager.py
+- **Purpose**: Manages a local llama.cpp / llamafile server for downloading and serving GGUF models on localhost.
+- **Classes defined**:
+  - `LlamafileNotAvailableError`
+  - `LlamafileManager`
+    - `__init__(self, model_key, port, n_gpu_layers)`
+    - `base_url(self)` (property)
+    - `start(self)`
+    - `stop(self)`
+    - `_download_model(self)`
+    - `_launch_server(self)`
+    - `_build_server_cmd(self)`
+    - `_wait_until_ready(self)`
+    - `_drain_output(self)`
+- **Functions defined**: None
+- **Imports FROM other project files**: None
+- **Imported BY which other project files**:
+  - `agent/core/llm_manager.py`
 
 ### agent/core/llm_manager.py
-- **Purpose**: Interacts with and manages configurations and connections to LLM providers like Groq, Gemini, and local Ollama.
+- **Purpose**: Interacts with and manages configurations, token usage, backoffs, swapping, and connections to LLM providers like Groq, Gemini, LM Studio, and local Ollama/llamafile.
 - **Classes defined**:
   - `LLMManager`
     - `__init__(self, model_name, env_path)`
@@ -160,13 +177,13 @@ This document provides a complete inventory of the project structure, including 
 - **Functions defined**: None
 - **Imports FROM other project files**:
   - `agent/core/tee_logger.py`
+  - `agent/core/llamafile_manager.py`
 - **Imported BY which other project files**:
   - `agent/core/__init__.py`
   - `agent/core/orchestrator.py`
-- **Last modified**: Thu Jun 18 16:46:16 2026 +0530
 
 ### agent/core/orchestrator.py
-- **Purpose**: Wires all tools, sessions, logger, and code agent modules into a single, top-level autonomous research execution block.
+- **Purpose**: Wires all tools, sessions, logger, early stop guards, token tracking, and code agent modules into a single, top-level autonomous research execution block.
 - **Classes defined**:
   - `AgentOrchestrator`
     - `__init__(self, model_name, use_short_prompt, max_steps, verbosity, max_idle_seconds, max_total_seconds)`
@@ -191,7 +208,20 @@ This document provides a complete inventory of the project structure, including 
   - `agent/tools/experiment_runner.py`
   - `agent/tools/leaderboard_tool.py`
 - **Imported BY which other project files**: None
-- **Last modified**: Fri Jun 19 15:25:44 2026 +0530
+
+### agent/core/platform_detector.py
+- **Purpose**: Auto-detects the execution platform (Colab, Kaggle, IIT server, Laptop, GCloud) and recommends the best model to use based on GPU VRAM and Ollama availability.
+- **Classes defined**:
+  - `PlatformDetector`
+    - `detect(self)`
+    - `_detect_platform(self)`
+    - `_detect_gpu(self)` (static)
+    - `_check_ollama(self)` (static)
+    - `_recommend_model(plat, vram, has_ollama)` (static)
+- **Functions defined**: None
+- **Imports FROM other project files**: None
+- **Imported BY which other project files**:
+  - `agent/core/env_config.py`
 
 ### agent/core/session_manager.py
 - **Purpose**: Manages running session context, tracks and logs heartbeats, and persists execution statuses.
@@ -210,7 +240,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**:
   - `agent/core/orchestrator.py`
-- **Last modified**: Fri Jun 19 13:56:06 2026 +0530
 
 ### agent/core/tee_logger.py
 - **Purpose**: Directs stdout and custom print calls to both standard output and log files simultaneously.
@@ -240,7 +269,6 @@ This document provides a complete inventory of the project structure, including 
   - `agent/tools/audit_tool.py`
   - `agent/tools/experiment_runner.py`
   - `agent/tools/leaderboard_tool.py`
-- **Last modified**: Thu Jun 18 16:39:02 2026 +0530
 
 ### agent/core/watchdog.py
 - **Purpose**: Monitors running session heartbeat updates and gracefully halts operations if no activity is detected within thresholds.
@@ -255,7 +283,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**:
   - `agent/core/orchestrator.py`
-- **Last modified**: Fri Jun 19 15:25:44 2026 +0530
 
 ### agent/data/__init__.py
 - **Purpose**: Package initializer for data handling, exposing data loader and pipeline classes.
@@ -265,7 +292,6 @@ This document provides a complete inventory of the project structure, including 
   - `agent/data/loader.py`
   - `agent/data/pipeline.py`
 - **Imported BY which other project files**: None
-- **Last modified**: Thu Jun 18 16:39:02 2026 +0530
 
 ### agent/data/features.py
 - **Purpose**: Computes sequence-level biological features including amino acid compositions, physicochemical attributes, and k-mer frequencies.
@@ -281,7 +307,6 @@ This document provides a complete inventory of the project structure, including 
   - `_instability_index(seq)`
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**: None
-- **Last modified**: Thu Jun 18 15:59:10 2026 +0530
 
 ### agent/data/loader.py
 - **Purpose**: Loads the raw alpha-synuclein CSV file containing peptide sequences and their concentrations.
@@ -292,7 +317,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imported BY which other project files**:
   - `agent/data/__init__.py`
   - `agent/data/pipeline.py`
-- **Last modified**: Thu Jun 18 16:39:02 2026 +0530
 
 ### agent/data/pipeline.py
 - **Purpose**: Processes biological sequence datasets, builds features, runs splits, and prepares datasets for training.
@@ -320,7 +344,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imported BY which other project files**:
   - `agent/data/__init__.py`
   - `agent/tools/dev_reset.py`
-- **Last modified**: Fri Jun 19 11:48:12 2026 +0530
 
 ### agent/prompts/__init__.py
 - **Purpose**: Initializes the prompt templates package and exposes the system prompt modules.
@@ -329,7 +352,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imports FROM other project files**:
   - `agent/prompts/system_prompt.py`
 - **Imported BY which other project files**: None
-- **Last modified**: Fri Jun 19 11:48:12 2026 +0530
 
 ### agent/prompts/system_prompt.py
 - **Purpose**: Holds the master long and short system prompts guiding the autonomous agent behavior.
@@ -339,7 +361,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imported BY which other project files**:
   - `agent/core/orchestrator.py`
   - `agent/prompts/__init__.py`
-- **Last modified**: Fri Jun 19 14:04:10 2026 +0530
 
 ### agent/tools/__init__.py
 - **Purpose**: Exposes available custom research, leaderboard, experiment execution, and code auditing tools to the agent.
@@ -351,7 +372,6 @@ This document provides a complete inventory of the project structure, including 
   - `agent/tools/experiment_runner.py`
   - `agent/tools/leaderboard_tool.py`
 - **Imported BY which other project files**: None
-- **Last modified**: Fri Jun 19 11:48:12 2026 +0530
 
 ### agent/tools/arxiv_tool.py
 - **Purpose**: Enables searching the Arxiv database for research papers with optional LLM-driven eligibility filtering.
@@ -366,7 +386,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imported BY which other project files**:
   - `agent/core/orchestrator.py`
   - `agent/tools/__init__.py`
-- **Last modified**: Fri Jun 19 11:48:12 2026 +0530
 
 ### agent/tools/audit_tool.py
 - **Purpose**: Audits python code snippets using AST to identify and prevent unauthorized file loading or testing cheating.
@@ -382,7 +401,6 @@ This document provides a complete inventory of the project structure, including 
   - `agent/core/orchestrator.py`
   - `agent/tools/__init__.py`
   - `agent/tools/experiment_runner.py`
-- **Last modified**: Fri Jun 19 13:48:18 2026 +0530
 
 ### agent/tools/check_last_session.py
 - **Purpose**: Summarizes status, duration, and metrics from the most recent run sessions recorded.
@@ -398,7 +416,6 @@ This document provides a complete inventory of the project structure, including 
   - `check_last_session(sessions_dir, n, verbose)`
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**: None
-- **Last modified**: Fri Jun 19 13:56:06 2026 +0530
 
 ### agent/tools/dev_reset.py
 - **Purpose**: Resets workspace states by wiping experiments and session logs while protecting datasets and core source files.
@@ -409,7 +426,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imports FROM other project files**:
   - `agent/data/pipeline.py`
 - **Imported BY which other project files**: None
-- **Last modified**: Fri Jun 19 15:25:44 2026 +0530
 
 ### agent/tools/experiment_runner.py
 - **Purpose**: Runs custom machine learning model training scripts in standalone processes, auditing them and writing results.
@@ -432,7 +448,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imported BY which other project files**:
   - `agent/core/orchestrator.py`
   - `agent/tools/__init__.py`
-- **Last modified**: Fri Jun 19 13:48:18 2026 +0530
 
 ### agent/tools/harness_template.py
 - **Purpose**: Exports template python blocks used dynamically to wrap and evaluate custom model code submitted by the agent.
@@ -441,7 +456,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**:
   - `agent/tools/experiment_runner.py`
-- **Last modified**: Fri Jun 19 13:48:18 2026 +0530
 
 ### agent/tools/leaderboard_tool.py
 - **Purpose**: Retrieves top performance metrics from the master leaderboard.
@@ -456,7 +470,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imported BY which other project files**:
   - `agent/core/orchestrator.py`
   - `agent/tools/__init__.py`
-- **Last modified**: Fri Jun 19 14:04:10 2026 +0530
 
 ### agent/tools/rebuild_leaderboard.py
 - **Purpose**: Aggregates results from individual experiment directories to rebuild a central leaderboard file.
@@ -466,7 +479,6 @@ This document provides a complete inventory of the project structure, including 
 - **Imports FROM other project files**: None
 - **Imported BY which other project files**:
   - `agent/tools/leaderboard_tool.py`
-- **Last modified**: Fri Jun 19 13:10:22 2026 +0530
 
 ---
 
@@ -524,316 +536,156 @@ agent/prompts/system_prompt.py
 Master system prompt for the autonomous alpha-synuclein ML research agent.
 
 Import with:
-    from agent.prompts.system_prompt import SYSTEM_PROMPT
+    from agent.prompts.system_prompt import SYSTEM_PROMPT, SYSTEM_PROMPT_SHORT
 """
 
 SYSTEM_PROMPT: str = """
-You are an autonomous ML research agent. Your mission:
-Find the best ML architecture for predicting alpha-synuclein
-peptide detectability (4 classes: No / Low / Medium / High).
+You are an autonomous ML researcher investigating alpha-synuclein 
+peptide detectability. Your goal: find the best-performing model 
+architecture you can, using genuine scientific judgment.
 
-=======================================================================
-DATASET FACTS
-=======================================================================
-- ~390 samples after expansion (65 peptides × 6 concentrations)
-- Features (pre-reduced to 500 by SelectKBest from 8427 raw):
-    20  amino-acid composition (normalised)
-     6  physicochemical (charge, hydrophob, MW, aromaticity, pI, instability)
-   400  2-mer frequencies
-  8000  3-mer frequencies
-     1  log10-scaled concentration
-  → After reduce_features(): typically ~500 features
-- 4-class imbalanced classification:
-    Class 0 (No)     : 311 samples  (78.5%) ← DOMINANT
-    Class 1 (Low)    :  16 samples  (4.0%)
-    Class 2 (Medium) :  37 samples  (9.3%)
-    Class 3 (High)   :  32 samples  (8.1%)
+DATASET: ~390 samples (65 peptides × 6 concentrations), 4 imbalanced 
+classes (No/Low/Medium/High). Features are pre-processed amino acid 
+composition, physicochemical properties, k-mer frequencies, and 
+concentration — already scaled and reduced by the harness.
 
-=======================================================================
-YOUR TOOLS
-=======================================================================
-- run_experiment      : Run a complete ML experiment (provide model_code only)
-- read_leaderboard    : Check past results and untried families
-- audit_code          : Verify no test-set cheating (call BEFORE run_experiment)
-- search_arxiv_papers : Find new methods from recent papers
-- web_search          : Search online for implementations and tricks
+=== THE ONLY RULES THAT CANNOT BE BROKEN ===
+- You can never access the test set. This is enforced by the 
+  harness itself — there is no path to test.pkl in your code.
+- Primary metric is val_f1_macro. Accuracy is meaningless here: 
+  a model predicting only the majority class scores ~0.78 accuracy 
+  while learning nothing.
+- Call audit_code before every run_experiment.
+- You write ONLY model_code: one function with this exact signature:
+      def build_and_train(X_train, y_train, X_val, y_val, class_weights):
+          # all imports inside the function
+          # return a fitted model with .predict()
+  Never load files. Never call predict() or compute metrics. 
+  Never reference X_test, y_test, or the test set in any form.
+  The harness handles all evaluation and file writing.
+- Always account for class imbalance in every model. How you do 
+  that is your choice.
 
-=======================================================================
-CRITICAL METRIC RULES — NEVER VIOLATE
-=======================================================================
-1. PRIMARY METRIC = val_f1_macro  (NOT accuracy)
-2. val_accuracy is MEANINGLESS — a model predicting only "No" gets 0.785
-   accuracy while learning nothing. IGNORE accuracy as main result.
-3. A model scoring val_f1_macro < 0.30 has essentially failed.
-4. Target: val_f1_macro > 0.60 (competitive), > 0.75 (excellent).
-5. ALWAYS report all four per-class F1 scores.
+=== YOUR TOOLS ===
+- run_experiment       : runs a complete experiment, returns val metrics
+- read_leaderboard     : see what has been tried and what worked
+- audit_code           : verify your code before running
+- search_arxiv_papers  : find research papers
+- web_search           : search the internet for anything
 
-=======================================================================
-CLASS IMBALANCE — MANDATORY IN EVERY MODEL
-=======================================================================
-- ALWAYS load class_weights from data/processed/class_weights.pkl
-- ALWAYS pass class_weight to model (class_weight=weight_dict for sklearn,
-  pos_weight / class_weights tensor for PyTorch)
-- For neural networks: use weighted CrossEntropyLoss
-- Optional: load SMOTE-resampled train data for neural networks
-- SMOTE is applied on TRAIN only — val and test are NEVER touched
+=== YOUR MISSION ===
+You have a budget of experiments. Use it as a real researcher would.
 
-=======================================================================
-YOUR ONLY JOB: WRITE model_code
-=======================================================================
-run_experiment uses a FIXED harness. You provide ONLY model_code:
-a Python string defining exactly one function:
+Start by understanding what has been tried and what worked. Then 
+decide for yourself what to try next — based on your own knowledge, 
+what you read in the leaderboard, and what you find by searching 
+the literature and the web. You are not limited to anything I mention. 
+You are encouraged to find methods I don't know about.
 
-    def build_and_train(X_train, y_train, X_val, y_val, class_weights):
-        # Inputs (already preprocessed by harness — do NOT reload from disk):
-        #   X_train, X_val : np.ndarray, already scaled + feature-selected
-        #   y_train, y_val : np.ndarray of int labels 0-3
-        #   class_weights  : dict {0: w0, 1: w1, 2: w2, 3: w3}
-        # Must return: a fitted model object with a .predict(X) method.
-        from sklearn.linear_model import LogisticRegression  # import inside
-        import numpy as np
+When you are stuck or curious, search. When results surprise you, 
+reason about why. When something works, understand why before 
+moving on. When something fails, learn from it.
 
-        weight_dict = class_weights  # already a dict {0: w, 1: w, ...}
-        model = LogisticRegression(
-            C=1.0,
-            class_weight=weight_dict,
-            max_iter=1000,
-            solver='lbfgs',
-        )
-        model.fit(X_train, y_train)
-        return model
+Do not stop early. Use your full budget. Do not call final_answer 
+until you have genuinely exhausted promising directions — not just 
+until you found the first thing that works.
 
-RULES for model_code:
-  - Put ALL imports inside the function (avoids namespace collisions)
-  - NEVER load files — X_train/X_val/class_weights are passed in directly
-  - NEVER call .predict(), accuracy_score(), or write files
-  - NEVER reference X_test, y_test, test.pkl, or test_loader
-  - DO use class_weights for every model (sklearn: class_weight=weight_dict,
-    PyTorch: torch.tensor([w for w in sorted(weight_dict.items())])
-  - The harness computes all metrics, writes results.json, updates leaderboard
-
-=======================================================================
-MATHEMATICAL WALL — NEVER BREAK THESE RULES
-=======================================================================
-- NEVER reference X_test, y_test, test.pkl, test_loader, or test_dataset
-  in model_code. The harness physically prevents loading test.pkl.
-- NEVER compute metrics yourself — the harness does it on val set only
-- NEVER write files in model_code — return the model object only
-- ALWAYS call audit_code BEFORE run_experiment
-- Run each architecture minimum 3 times with different seeds / hyperparams
-- Report mean ± std of val_f1_macro across seeds
-- The test set sealed at: data/splits/split_hash.sha256
-
-=======================================================================
-ARCHITECTURE TIERS — TRY ALL, IN ORDER
-=======================================================================
-TIER 1 — Classical Linear (fast baselines)
-  - LogisticRegression (C=0.1,1,10; solver=lbfgs; multi_class=auto)
-  - LinearSVC (C=0.1,1; class_weight='balanced')
-  - GaussianNaiveBayes
-  - KNN (k=3,5,7,11; weights=distance)
-
-TIER 2 — Tree Ensembles (usually strong on tabular)
-  - RandomForest (n=100,500; max_depth=None,10,20; class_weight='balanced')
-  - XGBoost (scale_pos_weight for imbalance; use_label_encoder=False)
-  - LightGBM (class_weight='balanced'; num_leaves=31,63,127)
-  - ExtraTrees (n=500; class_weight='balanced')
-  - GradientBoosting (n=100,200)
-
-TIER 3 — Neural Networks — MLP
-  - 2-layer MLP: [500, 256, 4]
-  - 3-layer MLP: [500, 512, 256, 128, 4]
-  - 4-layer MLP: [500, 512, 256, 128, 64, 4]
-  - Use: BatchNorm, Dropout(0.3), weighted CrossEntropyLoss, Adam
-  - Scheduler: CosineAnnealingLR or ReduceLROnPlateau
-
-TIER 4 — Sequence Models (treat feature vector as 1D sequence)
-  - 1D-CNN: Conv1d(500→128, k=3) → Pool → Dense
-  - BiLSTM: reshape features as timesteps
-  - GRU
-  - CNN + LSTM hybrid
-
-TIER 5 — Transformer (small)
-  - Input: 500 features as 50 tokens × 10 dims
-  - 2-head, 2-layer transformer encoder
-  - CLS token for classification
-
-TIER 6 — Modern Tabular DL
-  - TabNet (pytorch-tabnet)
-  - FT-Transformer (Feature Tokenizer + Transformer)
-  - NODE (Neural Oblivious Decision Ensembles)
-
-TIER 7 — Protein Language Model Embeddings
-  - ESM2-small (esm2_t6_8M_UR50D) as frozen feature extractor
-  - Feed embeddings → MLP classifier
-  - Note: requires pip install fair-esm
-
-TIER 8 — State Space Models
-  - Mamba-style S4 (if available)
-  - Implement S4 simplified version if full not available
-
-TIER 9 — Ensembles (run AFTER Tier 1-8)
-  - Stacking: top-3 models → LogisticRegression meta-learner
-  - Voting: soft voting of top-5 models
-  - Blending: train blender on OOF predictions
-
-TIER 10 — Paper-Driven (search arxiv after every 10 experiments)
-  - Search: "peptide classification few-shot {current_best_arch}"
-  - Search: "protein sequence classification small dataset 2024 2025"
-  - Search: "imbalanced multiclass {current_best_arch} 2024"
-  - Implement any ACTIONABLE method found
-
-=======================================================================
-SEARCH STRATEGY
-=======================================================================
-- After every 10 experiments: call search_arxiv_papers
-- Queries to rotate:
-    "peptide classification small dataset deep learning"
-    "protein sequence transformer few-shot learning"
-    "imbalanced multiclass classification tabular 2024"
-    "amino acid k-mer classification neural network"
-    "concentration dependent biological assay classification"
-- If promising paper found: implement it as a new experiment
-- Use web_search for implementation details of specific libraries
-
-=======================================================================
-HYPERPARAMETER SEARCH STRATEGY
-=======================================================================
-For each architecture, try at minimum:
-  Seed 1: default hyperparams
-  Seed 2: larger model / more regularisation
-  Seed 3: smaller model / less regularisation
-Use val_f1_macro to select best config.
-Log: "Seed N: val_f1_macro = X.XXXX"
-
-=======================================================================
-REASONING LOG — MANDATORY
-=======================================================================
-Before each experiment:
-  "WHY: I am trying [architecture] because [reason]. 
-   Expected val_f1_macro: [estimate]. 
-   Key hyperparams: [list]."
-
-After each experiment:
-  "LEARNED: val_f1_macro = X.XXXX. 
-   Per-class F1: No=X, Low=X, Medium=X, High=X. 
-   Observation: [what worked, what failed, pattern noticed]."
-
-After every 5 experiments:
-  "PATTERN ANALYSIS: 
-   Best family so far: [family] at [score]. 
-   Failing classes: [which classes have lowest F1]. 
-   Next strategy: [what to try next and why]."
-
-=======================================================================
-STOPPING / COMPLETION CRITERIA
-=======================================================================
-Keep running until:
-  (a) All 9 Tiers have at least 3 experiments each, AND
-  (b) val_f1_macro has plateaued for 20 consecutive experiments, OR
-  (c) val_f1_macro > 0.85 is achieved
-
-When done, output:
-  "MISSION COMPLETE:
-   Best model: [exp_id] — [architecture]
-   val_f1_macro: [score]
-   Recommendation for final test evaluation: [brief note]"
-
-=======================================================================
-You are fully autonomous. Use your tools, be methodical, and find
-the best possible model for this alpha-synuclein classification task.
-Start by calling read_leaderboard to see what has been done so far,
-then call search_arxiv_papers for context, then begin experiments
-with TIER 1 architectures if not yet tried.
-=======================================================================
+You are the researcher. The tools are yours. Use real judgment.
 """
 
 # Short version for models with limited context windows
 SYSTEM_PROMPT_SHORT: str = """
-You are an autonomous ML research agent for alpha-synuclein peptide
-classification (4 classes: No/Low/Medium/High, ~390 samples, imbalanced).
+Autonomous ML researcher: find the best model for alpha-synuclein 
+peptide classification (4 imbalanced classes, ~390 samples). 
 
-KEY RULES:
-1. PRIMARY METRIC = val_f1_macro (NOT accuracy — 78.5% class imbalance)
-2. model_code must define build_and_train(X_train, y_train, X_val, y_val,
-   class_weights) -> fitted_model. That is ALL you write.
-3. ALWAYS use class_weights inside build_and_train
-4. NEVER load files, reference X_test, or write results
-5. Run audit_code -> run_experiment (never skip audit)
-6. Try all architecture families: classical_ml → neural_network → ensemble
+You decide everything — what to try, in what order, when to search 
+the literature, when to stop. No fixed list of methods. Use your 
+own knowledge and search tools to discover what might work. 
 
-The harness loads data, calls your function, evaluates on val, writes results.
-
-Start: read_leaderboard -> search_arxiv_papers -> run experiments.
-"""
+Non-negotiable rules:
+- Never access the test set (physically blocked by harness)
+- Primary metric: val_f1_macro only
+- Write only: def build_and_train(X_train, y_train, X_val, y_val, class_weights)
+  returning a fitted model — all imports inside, no file loading
+- Call audit_code before every run_experiment
+- Account for class imbalance in every model
+- Use your full experiment budget before concluding
+""" 
 ```
 
 ---
 
 ## 5. THE NOTEBOOK
 
-Cells metadata from `notebooks/run_agent.ipynb`:
+Cells from `notebooks/run_agent.ipynb` (verbatim first lines of active cells):
 
-### Cell 1 (code)
-- **Cell type**: code
-- **First 3 lines of code**:
-  ```python
-  # !git pull
-  ```
+### Cell 1
+```python
+# !git pull
+```
 
-### Cell 2 (code)
-- **Cell type**: code
-- **First 3 lines of code**:
-  ```python
-  # ╔══════════════════════════════════════════════════════════════════════════════╗
-  # ║  Cell 1 · [BOOTSTRAP]  Auto-setup: Local Windows + Google Cloud (GCE)     ║
-  # ║  Run this cell FIRST every session — clones/pulls repo & installs deps.   ║
-  ```
+### Cell 2 (Bootstrap Cell)
+```python
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Cell 1 · [BOOTSTRAP]  Auto-setup: Local Windows + Google Cloud (GCE)     ║
+# ║  Run this cell FIRST every session — clones/pulls repo & installs deps.   ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+import os, sys, subprocess, platform
+from pathlib import Path
 
-### Cell 3 (code)
-- **Cell type**: code
-- **First 3 lines of code**:
-  ```python
-  # ── Path guard: works even if Cell 1 hasn't run (import agent installed via pip install -e .) ──
-  import sys, os; _r = next((p for p in [__import__('pathlib').Path.home()/'agent_workspace',
-      __import__('pathlib').Path(r'd:\3rd sem M.tech\agent_workspace')] if p.exists()), None)
-  ```
+GITHUB_REPO   = 'https://github.com/DhruvalPtl/alpha-synuclein-agent.git'
+CLOUD_INSTALL = Path.home() / 'agent_workspace'
+LOCAL_WIN     = Path(r'd:\3rd sem M.tech\agent_workspace')
+LOCAL_WSL     = Path('/mnt/d/3rd sem M.tech/agent_workspace')
+```
 
-### Cell 4 (code)
-- **Cell type**: code
-- **First 3 lines of code**:
-  ```python
-  # ── Path guard: works even if Cell 1 hasn't run (import agent installed via pip install -e .) ──
-  import sys, os; _r = next((p for p in [__import__('pathlib').Path.home()/'agent_workspace',
-      __import__('pathlib').Path(r'd:\3rd sem M.tech\agent_workspace')] if p.exists()), None)
-  ```
+### Cell 3 (Data Verification)
+```python
+# ── Path guard: works even if Cell 1 hasn't run (import agent installed via pip install -e .) ──
+import sys, os; _r = next((p for p in [
+    __import__('pathlib').Path(r'd:\3rd sem M.tech\agent_workspace'),
+    __import__('pathlib').Path('/mnt/d/3rd sem M.tech/agent_workspace'),
+    __import__('pathlib').Path.home()/'agent_workspace'
+] if p.exists()), None)
+```
 
-### Cell 5 (code)
-- **Cell type**: code
-- **First 3 lines of code**:
-  ```python
-  # ╔══════════════════════════════════════════════════════════════════════════════╗
-  # ║  Cell 3b · [DEV RESET]  Wipe experiments + logs for a fresh run           ║
-  # ║  NEVER deletes data/, agent/, .env, or .git/  — mathematical wall safe.   ║
-  ```
+### Cell 4 (Wall Verification)
+```python
+# ── Path guard: works even if Cell 1 hasn't run (import agent installed via pip install -e .) ──
+import sys, os; _r = next((p for p in [
+    __import__('pathlib').Path(r'd:\3rd sem M.tech\agent_workspace'),
+    __import__('pathlib').Path('/mnt/d/3rd sem M.tech/agent_workspace'),
+    __import__('pathlib').Path.home()/'agent_workspace'
+] if p.exists()), None)
+```
 
-### Cell 6 (code)
-- **Cell type**: code
-- **First 3 lines of code**:
-  ```python
-  # ── Path guard ────────────────────────────────────────────────────────────────
-  import sys, os
-  _r = next((p for p in [__import__('pathlib').Path.home()/'agent_workspace',
-  ```
+### Cell 5 (Dev Reset)
+```python
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  Cell 3b · [DEV RESET]  Wipe experiments + logs for a fresh run           ║
+# ║  NEVER deletes data/, agent/, .env, or .git/  — mathematical wall safe.   ║
+```
 
-### Cell 7 (code)
-- **Cell type**: code
-- **First 3 lines of code**:
-  ```python
-  # ── Path guard: works even if Cell 1 hasn't run (import agent installed via pip install -e .) ──
-  import sys, os; _r = next((p for p in [__import__('pathlib').Path.home()/'agent_workspace',
-      __import__('pathlib').Path(r'd:\3rd sem M.tech\agent_workspace')] if p.exists()), None)
-  ```
+### Cell 6 (Launch Agent)
+```python
+# ── Path guard ────────────────────────────────────────────────────────────────
+import sys, os
+_r = next((p for p in [
+    __import__('pathlib').Path(r'd:\3rd sem M.tech\agent_workspace'),
+    __import__('pathlib').Path('/mnt/d/3rd sem M.tech/agent_workspace'),
+    __import__('pathlib').Path.home()/'agent_workspace'
+] if p.exists()), None)
+```
+
+### Cell 7 (Dashboard)
+```python
+# ── Path guard: works even if Cell 1 hasn't run (import agent installed via pip install -e .) ──
+import sys, os; _r = next((p for p in [
+    __import__('pathlib').Path(r'd:\3rd sem M.tech\agent_workspace'),
+    __import__('pathlib').Path('/mnt/d/3rd sem M.tech/agent_workspace'),
+    __import__('pathlib').Path.home()/'agent_workspace'
+] if p.exists()), None)
+```
 
 ---
 
@@ -841,21 +693,21 @@ Cells metadata from `notebooks/run_agent.ipynb`:
 
 ### git log --oneline -15
 ```text
-ebb8e17 Part A+B: concise logger, watchdog, run summary, stop button, dev_reset with wall verification
-e25d979 Fix Cell 1: check .git not just dir, add pip install -e, path guards on all cells, clear stale outputs
-9ec8aaf Fix ModuleNotFoundError: add pyproject.toml, pip install -e . in cloud_setup.py — import agent works from any Jupyter cell
-69e12a2 Add cloud_setup.py: standalone bootstrap script, immune to Jupyter cwd issue
-9299297 verify_all.py: 30/30 checks pass — full system verified
-d26d9d7 Fix 3 bugs: system_prompt triple-quote syntax error, MethodType forward wrapper, LeaderboardTool auto-rebuild
-f50dfad Session management: SessionManager, heartbeat daemon, crash-safe summary, check_last_session.py, dashboard session panel
-683aec6 Harness architecture: fixed train_eval.py, model_code-only contract, build_and_train(), proof runs
-b6ac01a Sync architecture: track exp results.json, machine-tagged IDs, rebuild_leaderboard.py, dashboard rebuilt from disk
-e89e2da Verification pass: fix gitignore (untrack leaderboard.json), restore Cell 3 wall-verify, add verify_all.py
-e09ac83 Cloud support: bootstrap cell, env_config, tracked processed artifacts, updated gitignore+requirements
-1939c8a Phase 3: ArxivTool, AgentOrchestrator, system prompt, reduce_features, get_class_weights, SMOTE, monitor dashboard
-2822e6c Phase 2: LLMManager, ExperimentRunnerTool, LeaderboardTool, AuditTool + notebook Cell 4
-08e1658 Phase 1: add custom CSV loader, fix ASCII-safe prints, run_pipeline.py verified
-da385bd Phase 1: resolve merge conflict - keep requirements.txt
+70f4f41 fix: Add WSL path support for local notebook runtime and resolve Gemini key configuration issue
+81059c0 fix: Guard raises RuntimeError instead of returning string
+6306b3d feat: Add early-stop guard + dynamic session context in prompt
+33f2ed9 docs: Add DEPLOYMENT.md deployment guide
+dbee9cd Section 5: Architecture Landscape menu in system prompt (tabular/NN/sequence/tabular-DL/ensemble/NLP framing), fix merged sentence, expand SYSTEM_PROMPT_SHORT
+0272dd8 Section 4: Per-provider throttle (gemini/groq/cerebras), APIError backoff for all providers, daily token budget tracking with 80%/95% alerts in token_budget.json
+0285cf9 Section 3: ExploreExploitController with diversity enforcement and exploit focus, explore_ratio param in AgentOrchestrator
+4a8f7b5 Section 2: TwoBrainManager (reasoning + coding LLMs), two_brain/coding_model params in AgentOrchestrator
+dbb5798 Section 1: PlatformDetector, LlamafileManager, env_config platform banner, llamafile model keys
+eaffcc6 Rate-limit hardening: Gemini throttle (4s gap, 12 RPM, max_retries=5), backoff on 429/503, in-place model swap on APIError, real token counts, session token totals in RUN SUMMARY
+960a802 Add context pruning: compact result format (~14 words vs ~55), per-step token logging, and memory compression every 5 experiments
+28ee659 Add LM Studio local server support (OpenAI-compatible, localhost:1234/v1) to LLMManager
+2e82395 Fix unauthorized import error inside smolagents CodeAgent sandbox and align verify_all.py prompt assertions
+7b7dd86 Replace rigid tier-list prompt with open-ended researcher prompt (2833 chars)
+b6a8de7 Fix step_callbacks crash: register on CallbackRegistry not replace with list (smolagents 1.26.0)
 ```
 
 ### git status
@@ -867,47 +719,18 @@ Changes not staged for commit:
   (use "git add/rm <file>..." to update what will be committed)
   (use "git restore <file>..." to discard changes in working directory)
 	deleted:    data/raw/Data_alpha_synuclein.xlsx
-	deleted:    experiments/exp_001_laptop_logistic_regression_c_0_1/config.yaml
-	deleted:    experiments/exp_001_laptop_logistic_regression_c_0_1/model.py
-	deleted:    experiments/exp_001_laptop_logistic_regression_c_0_1/results.json
-	deleted:    experiments/exp_001_laptop_logistic_regression_c_0_1/run.log
-	deleted:    experiments/exp_001_laptop_logistic_regression_c_0_1/train_eval.py
-	deleted:    experiments/exp_002_laptop_linearsvc_c_0_1/config.yaml
-	deleted:    experiments/exp_002_laptop_linearsvc_c_0_1/model.py
-	deleted:    experiments/exp_002_laptop_linearsvc_c_0_1/results.json
-	deleted:    experiments/exp_002_laptop_linearsvc_c_0_1/run.log
-	deleted:    experiments/exp_002_laptop_linearsvc_c_0_1/train_eval.py
-	deleted:    experiments/exp_003_laptop_logistic_regression_c_0_1/config.yaml
-	deleted:    experiments/exp_003_laptop_logistic_regression_c_0_1/model.py
-	deleted:    experiments/exp_003_laptop_logistic_regression_c_0_1/results.json
-	deleted:    experiments/exp_003_laptop_logistic_regression_c_0_1/run.log
-	deleted:    experiments/exp_003_laptop_logistic_regression_c_0_1/train_eval.py
-	deleted:    experiments/exp_004_laptop_linearsvc_c_0_1/config.yaml
-	deleted:    experiments/exp_004_laptop_linearsvc_c_0_1/model.py
-	deleted:    experiments/exp_004_laptop_linearsvc_c_0_1/results.json
-	deleted:    experiments/exp_004_laptop_linearsvc_c_0_1/run.log
-	deleted:    experiments/exp_004_laptop_linearsvc_c_0_1/train_eval.py
-	modified:   notebooks/run_agent.ipynb
+	deleted:    experiments/exp_001_laptop_logistic_regression_c_0_1/...
 	deleted:    sessions/2026-06-19_13-55-46/session_summary.json
 	deleted:    sessions/2026-06-19_13-55-50/session_summary.json
+	modified:   PROJECT_MAP.md
 
 Untracked files:
   (use "git add <file>..." to include in what will be committed)
 	alpha_synuclein_agent.egg-info/
 	data/raw/csv_preview.txt
 	experiments/.gitkeep
-	experiments/exp_001_BOOK-RNCKA44N53_logistic_regression/
-	sessions/.gitkeep
-	sessions/2026-06-19_18-42-03/
-	sessions/2026-06-19_18-45-14/
-
-no changes added to commit (use "git add" and/or "git commit -a")
-```
-
-### git remote -v
-```text
-origin	https://github.com/DhruvalPtl/alpha-synuclein-agent.git (fetch)
-origin	https://github.com/DhruvalPtl/alpha-synuclein-agent.git (push)
+	experiments/exp_001_laptop_random_forest_baseline/
+	... (other laptop experiments exp_002 to exp_085)
 ```
 
 ---
@@ -920,23 +743,23 @@ origin	https://github.com/DhruvalPtl/alpha-synuclein-agent.git (push)
   1. IMPORTS
 ──────────────────────────────────────────────────────────────
   PASS  tee_logger  [singleton OK]
-  PASS  llm_manager  [9 models: ['gemini-flash', 'gemini-pro', 'groq-llama', 'groq-mixtral', 'mistral-small', 'cerebras', 'openrouter', 'local-qwen', 'local-deepseek']]
+  PASS  llm_manager  [17 models: ['gemini-flash', 'gemini-flash-lite', 'gemini-pro', 'groq-llama', 'groq-mixtral', 'mistral-small', 'cerebras', 'openrouter', 'local-qwen', 'local-deepseek', 'lmstudio-qwen', 'lmstudio-deepseek', 'lmstudio-mistral', 'lmstudio-llama', 'lmstudio-any', 'llamafile-14b', 'llamafile-32b']]
   PASS  session_manager  [OK]
   PASS  orchestrator  [OK]
   PASS  harness_template  [8745 chars]
   PASS  experiment_runner  [['exp_name', 'architecture_family', 'model_code', 'hyperparams']]
-[2026-06-19 19:01:44] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
-[2026-06-19 19:01:44] [WARNING] [AUDIT FAIL] Line 2: Loading 'test.pkl' directly  |  >> with open('data/splits/test.pkl','rb') as f: pass
-[2026-06-19 19:01:44] [ERROR  ] [AUDIT] FAIL: 1 violation(s) found:
+[2026-06-23 14:07:22] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 14:07:22] [WARNING] [AUDIT FAIL] Line 2: Loading 'test.pkl' directly  |  >> with open('data/splits/test.pkl','rb') as f: pass
+[2026-06-23 14:07:22] [ERROR  ] [AUDIT] FAIL: 1 violation(s) found:
   • Line 2: Loading 'test.pkl' directly  |  >> with open('data/splits/test.pkl','rb') as f: pass
   PASS  audit_tool  [clean=PASS cheating=FAIL: 1 violation(s)]
-[2026-06-19 19:01:44] [INFO   ] [LeaderboardTool] Leaderboard rebuilt from disk.
-[2026-06-19 19:01:44] [INFO   ] [LeaderboardTool] Report generated. total_runs=1  best_f1=0.6501  untried_families=7
-  PASS  leaderboard_tool  [2017 chars]
-  PASS  rebuild_leaderboard  [1 exps]
-  PASS  check_last_session  [last=2026-06-19_18-45-14]
+[2026-06-23 14:07:22] [INFO   ] [LeaderboardTool] Leaderboard rebuilt from disk.
+[2026-06-23 14:07:22] [INFO   ] [LeaderboardTool] Report generated. total_runs=84  best_f1=0.7004  untried_families=0
+  PASS  leaderboard_tool  [2248 chars]
+  PASS  rebuild_leaderboard  [84 exps]
+  PASS  check_last_session  [last=2026-06-23_11-42-18]
   PASS  arxiv_tool  [OK]
-  PASS  system_prompt  [9898 chars]
+  PASS  system_prompt  [2499 chars]
   PASS  data_pipeline  [OK]
 
 ──────────────────────────────────────────────────────────────
@@ -959,18 +782,18 @@ origin	https://github.com/DhruvalPtl/alpha-synuclein-agent.git (push)
   4. HARNESS RENDERING + AUDIT WALL
 ──────────────────────────────────────────────────────────────
   PASS  harness renders without test.pkl load  [8650 chars, test.pkl exec-free]
-[2026-06-19 19:01:46] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
-[2026-06-19 19:01:46] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 14:07:25] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 14:07:25] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
   PASS  audit: clean code passes  [2 clean codes passed]
-[2026-06-19 19:01:46] [WARNING] [AUDIT FAIL] Line 1: Loading 'test.pkl' directly  |  >> open('data/splits/test.pkl','rb')
-[2026-06-19 19:01:46] [ERROR  ] [AUDIT] FAIL: 1 violation(s) found:
+[2026-06-23 14:07:25] [WARNING] [AUDIT FAIL] Line 1: Loading 'test.pkl' directly  |  >> open('data/splits/test.pkl','rb')
+[2026-06-23 14:07:25] [ERROR  ] [AUDIT] FAIL: 1 violation(s) found:
   • Line 1: Loading 'test.pkl' directly  |  >> open('data/splits/test.pkl','rb')
-[2026-06-19 19:01:46] [WARNING] [AUDIT FAIL] Line 1: Loading 'test.pkl' directly  |  >> pickle.load(open('test.pkl'))
-[2026-06-19 19:01:46] [ERROR  ] [AUDIT] FAIL: 1 violation(s) found:
+[2026-06-23 14:07:25] [WARNING] [AUDIT FAIL] Line 1: Loading 'test.pkl' directly  |  >> pickle.load(open('test.pkl'))
+[2026-06-23 14:07:25] [ERROR  ] [AUDIT] FAIL: 1 violation(s) found:
   • Line 1: Loading 'test.pkl' directly  |  >> pickle.load(open('test.pkl'))
-[2026-06-19 19:01:46] [WARNING] [AUDIT FAIL] Line 1: Variable 'X_test' found — test features must never appear in experiment code  |  >> X_test = ...
-[2026-06-19 19:01:46] [WARNING] [AUDIT FAIL] Line 2: Variable 'y_test' found — test labels must never appear in experiment code  |  >> accuracy_score(y_test, pred)
-[2026-06-19 19:01:46] [ERROR  ] [AUDIT] FAIL: 2 violation(s) found:
+[2026-06-23 14:07:25] [WARNING] [AUDIT FAIL] Line 1: Variable 'X_test' found — test features must never appear in experiment code  |  >> X_test = ...
+[2026-06-23 14:07:25] [WARNING] [AUDIT FAIL] Line 2: Variable 'y_test' found — test labels must never appear in experiment code  |  >> accuracy_score(y_test, pred)
+[2026-06-23 14:07:25] [ERROR  ] [AUDIT] FAIL: 2 violation(s) found:
   • Line 1: Variable 'X_test' found — test features must never appear in experiment code  |  >> X_test = ...
   • Line 2: Variable 'y_test' found — test labels must never appear in experiment code  |  >> accuracy_score(y_test, pred)
   PASS  audit: cheating code blocked  [3 cheating patterns caught]
@@ -978,63 +801,83 @@ origin	https://github.com/DhruvalPtl/alpha-synuclein-agent.git (push)
 ──────────────────────────────────────────────────────────────
   5. LIVE EXPERIMENT RUN (max_experiments=1)
 ──────────────────────────────────────────────────────────────
-[2026-06-19 19:01:46] [AGENT  ] [ExperimentRunner] Starting exp_001_laptop_rf_verify_check: rf_verify_check (family=classical_ml)
-[2026-06-19 19:01:46] [INFO   ] [ExperimentRunner] Files written to experiments\exp_001_laptop_rf_verify_check
-[2026-06-19 19:01:46] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
-[2026-06-19 19:01:46] [INFO   ] [ExperimentRunner] Audit PASS for exp_001_laptop_rf_verify_check
-[2026-06-19 19:01:46] [INFO   ] [ExperimentRunner] Running: D:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_001_laptop_rf_verify_check\train_eval.py
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_001_laptop_rf_verify_check
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Experiment   = exp_001_laptop_rf_verify_check
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Loading train split ...
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Loading val split ...
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Applying scaler + selector ...
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Loading class weights ...
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_001_laptop_rf_verify_check\model.py ...
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Calling build_and_train() ...
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] build_and_train() returned in 0.10s
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] Evaluating on val set ...
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] val_accuracy  = 0.7833
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5442
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9195402298850575, '1': 0.4, '2': 0.42857142857142855, '3': 0.42857142857142855}
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_001_laptop_rf_verify_check\results.json
-[2026-06-19 19:01:52] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5442
-[2026-06-19 19:01:52] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=2  best_f1=0.6501
-[2026-06-19 19:01:52] [AGENT  ] [ExperimentRunner] exp_001_laptop_rf_verify_check COMPLETE | val_f1_macro=0.5442 | status=success | time=6.0s
+[2026-06-23 14:07:25] [AGENT  ] [ExperimentRunner] Starting exp_085_laptop_rf_verify_check: rf_verify_check (family=classical_ml)
+[2026-06-23 14:07:25] [INFO   ] [ExperimentRunner] Files written to experiments\exp_085_laptop_rf_verify_check
+[2026-06-23 14:07:25] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 14:07:25] [INFO   ] [ExperimentRunner] Audit PASS for exp_085_laptop_rf_verify_check
+[2026-06-23 14:07:25] [INFO   ] [ExperimentRunner] Running: D:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_085_laptop_rf_verify_check\train_eval.py
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_085_laptop_rf_verify_check
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Experiment   = exp_085_laptop_rf_verify_check
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_085_laptop_rf_verify_check\model.py ...
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] build_and_train() returned in 0.13s
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] val_accuracy  = 0.7833
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5442
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9195402298850575, '1': 0.4, '2': 0.42857142857142855, '3': 0.42857142857142855}
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_085_laptop_rf_verify_check\results.json
+[2026-06-23 14:07:33] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5442
+[2026-06-23 14:07:33] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=85  best_f1=0.7004
+[2026-06-23 14:07:33] [AGENT  ] [ExperimentRunner] exp_085_laptop_rf_verify_check COMPLETE | val_f1_macro=0.5442 | status=success | time=8.7s
+[2026-06-23 14:07:33] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_085_laptop_rf_verify_check
+  Arch       : rf_verify_check
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.5442
+  val_accuracy : 0.7833
+  train_time   : 0.1s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9195  |##################  |
+    1 (Low   ): 0.4000  |########            |
+    2 (Medium): 0.4286  |########            |
+    3 (High  ): 0.4286  |########            |
+==============================================================
   PASS  live experiment (RandomForest, 50 trees)  [val_f1_macro=0.5442  val_accuracy=0.7833]
 
 ──────────────────────────────────────────────────────────────
   6. SESSION MANAGER
 ──────────────────────────────────────────────────────────────
-[2026-06-19 19:01:52] [AGENT  ] [Session] Started  session_id=2026-06-19_19-01-52  dir=sessions\2026-06-19_19-01-52
-[2026-06-19 19:01:55] [AGENT  ] [Session] Ended  status=completed  experiments=1  session=2026-06-19_19-01-52
-  PASS  session_manager lifecycle  [id=2026-06-19_19-01-52  status=completed]
-[2026-06-19 19:01:55] [AGENT  ] [Session] Started  session_id=2026-06-19_19-01-55  dir=sessions\2026-06-19_19-01-55
-[2026-06-19 19:01:56] [AGENT  ] [Session] Ended  status=crashed  experiments=0  session=2026-06-19_19-01-55
+[2026-06-23 14:07:33] [AGENT  ] [Session] Started  session_id=2026-06-23_14-07-33  dir=sessions\2026-06-23_14-07-33
+[2026-06-23 14:07:36] [AGENT  ] [Session] Ended  status=completed  experiments=1  session=2026-06-23_14-07-33
+  PASS  session_manager lifecycle  [id=2026-06-23_14-07-33  status=completed]
+[2026-06-23 14:07:36] [AGENT  ] [Session] Started  session_id=2026-06-23_14-07-36  dir=sessions\2026-06-23_14-07-36
+[2026-06-23 14:07:37] [AGENT  ] [Session] Ended  status=crashed  experiments=0  session=2026-06-23_14-07-36
   PASS  session_manager crash persistence  [crash preserved: ValueError: simulated]
 
 ──────────────────────────────────────────────────────────────
   7. ORCHESTRATOR INIT (no API call)
 ──────────────────────────────────────────────────────────────
-[2026-06-19 19:01:56] [AGENT  ] [Orchestrator] Initialising  model=local-qwen  verbosity=concise
-[2026-06-19 19:01:59] [INFO   ] [LLMManager] Active: 'local-qwen'  |  model_id=ollama/qwen2.5-coder:32b  |  provider=ollama
-[2026-06-19 19:01:59] [INFO   ] [Orchestrator] DuckDuckGoSearchTool added.
-[2026-06-19 19:01:59] [INFO   ] [Orchestrator] CodeAgent ready. max_steps=500  verbosity_level=0
-[2026-06-19 19:01:59] [AGENT  ] [Orchestrator] Ready. Call run() to start.
+[2026-06-23 14:07:37] [AGENT  ] [Orchestrator] Initialising  model=local-qwen  verbosity=concise
+[2026-06-23 14:07:41] [INFO   ] [LLMManager] Active: 'local-qwen'  |  model_id=ollama/qwen2.5-coder:32b  |  provider=ollama
+[2026-06-23 14:07:41] [INFO   ] [Orchestrator] DuckDuckGoSearchTool added.
+[2026-06-23 14:07:41] [INFO   ] [Orchestrator] CodeAgent ready. max_steps=500  verbosity_level=0
+[2026-06-23 14:07:41] [AGENT  ] [Orchestrator] Ready. Call run() to start.
   PASS  orchestrator.__init__ (tools wired)  [tools=['run_experiment', 'read_leaderboard', 'audit_code', 'search_arxiv_papers', 'web_search']]
 
 ──────────────────────────────────────────────────────────────
   8. GIT STATUS
 ──────────────────────────────────────────────────────────────
-         ebb8e17 Part A+B: concise logger, watchdog, run summary, stop button, dev_reset with wall verification
-         e25d979 Fix Cell 1: check .git not just dir, add pip install -e, path guards on all cells, clear stale outputs
-         9ec8aaf Fix ModuleNotFoundError: add pyproject.toml, pip install -e . in cloud_setup.py — import agent works from any Jupyter cell
-         69e12a2 Add cloud_setup.py: standalone bootstrap script, immune to Jupyter cwd issue
-         9299297 verify_all.py: 30/30 checks pass — full system verified
+         70f4f41 fix: Add WSL path support for local notebook runtime and resolve Gemini key configuration issue
+         81059c0 fix: Guard raises RuntimeError instead of returning string
+         6306b3d feat: Add early-stop guard + dynamic session context in prompt
+         33f2ed9 docs: Add DEPLOYMENT.md deployment guide
+         dbee9cd Section 5: Architecture Landscape menu in system prompt (tabular/NN/sequence/tabular-DL/ensemble/NLP framing), fix merged sentence, expand SYSTEM_PROMPT_SHORT
   PASS  git log (recent commits)  [5 recent commits]
   PASS  .gitignore rules  [rules correct]
 
@@ -1045,45 +888,3 @@ origin	https://github.com/DhruvalPtl/alpha-synuclein-agent.git (push)
   30/30 checks passed
   ALL CHECKS PASSED ✓
 ```
-
-### Orchestrator Import Verification
-Output from command `python -c "import sys; sys.path.insert(0,'.'); from agent.core.orchestrator import AgentOrchestrator; print('orchestrator imports OK')"`:
-```text
-orchestrator imports OK
-```
-
----
-
-## 8. LAST KNOWN ERROR
-
-### Description of Blocker
-When launching the autonomous research loop in Cell 4 (Jupyter Notebook / agent run loop) with `verbosity="concise"`, the execution crashes immediately with an `AttributeError`.
-
-- **Root Cause**: The orchestrator (`agent/core/orchestrator.py`, lines 183-186) attempts to inject a concise logger callback into smolagents `CodeAgent` by overwriting the `step_callbacks` attribute:
-  ```python
-  if not hasattr(self._agent, "step_callbacks"):
-      self._agent.step_callbacks = []
-  self._agent.step_callbacks = [self._reporter.step_callback]
-  ```
-  However, in `smolagents`, `agent.step_callbacks` is initialized as a `CallbackRegistry` instance, not a standard list. Overwriting it with a python list causes the agent to crash on the first finalize step when calling `.callback(memory_step, agent=self)`.
-
-### Verbatim Reproducible Traceback
-```text
-Traceback (most recent call last):
-  File "<string>", line 7, in <module>
-  File "D:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\smolagents\agents.py", line 499, in run
-    steps = list(self._run_stream(task=self.task, max_steps=max_steps, images=images))
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "D:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\smolagents\agents.py", line 601, in _run_stream
-    self._finalize_step(action_step)
-  File "D:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\smolagents\agents.py", line 623, in _finalize_step
-    self.step_callbacks.callback(memory_step, agent=self)
-    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AttributeError: 'list' object has no attribute 'callback'
-```
-
-- **Fix Recommendation (To be implemented when allowed)**: Instead of replacing `self._agent.step_callbacks` with a list, register the callback on the existing `CallbackRegistry`:
-  ```python
-  from smolagents import ActionStep
-  self._agent.step_callbacks.register(ActionStep, self._reporter.step_callback)
-  ```
