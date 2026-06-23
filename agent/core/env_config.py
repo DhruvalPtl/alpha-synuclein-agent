@@ -44,6 +44,7 @@ CLOUD_REPO_DIR  = "~/agent_workspace"   # where repo lives on the instance
 
 # ── Local Windows project root (used as fallback anchor) ─────────────────────
 _LOCAL_WIN_ROOT = r"d:\3rd sem M.tech\agent_workspace"
+_LOCAL_WSL_ROOT = "/mnt/d/3rd sem M.tech/agent_workspace"
 
 
 def find_project_root(start: Optional[Path] = None) -> Path:
@@ -53,7 +54,7 @@ def find_project_root(start: Optional[Path] = None) -> Path:
     Search order
     ------------
     1. Exact match walking up from cwd
-    2. Hardcoded local Windows path (dev machine only)
+    2. Hardcoded local Windows/WSL path (dev machine only)
     3. HOME/agent_workspace (common cloud deployment)
     4. HOME/alpha-synuclein-agent (git clone default name)
     5. First ancestor that contains both 'agent/' and 'notebooks/'
@@ -69,10 +70,11 @@ def find_project_root(start: Optional[Path] = None) -> Path:
         if _is_root(candidate):
             return candidate
 
-    # ── 2. Known local Windows path ───────────────────────────────────────────
-    win = Path(_LOCAL_WIN_ROOT)
-    if win.exists() and _is_root(win):
-        return win
+    # ── 2. Known local Windows/WSL path ───────────────────────────────────────
+    for local_path_str in (_LOCAL_WIN_ROOT, _LOCAL_WSL_ROOT):
+        local_path = Path(local_path_str)
+        if local_path.exists() and _is_root(local_path):
+            return local_path
 
     # ── 3. ~/agent_workspace ─────────────────────────────────────────────────
     home = Path.home()
