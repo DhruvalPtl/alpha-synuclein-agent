@@ -55,3 +55,26 @@
 [2026-06-23 12:13:53] [AGENT  ] [Watchdog] Exited. stop_reason=external
 [2026-06-23 12:13:53] [AGENT  ] [Session] Ended  status=completed  experiments=84  session=2026-06-23_11-42-18
 [2026-06-23 12:13:53] [AGENT  ] [Orchestrator] RUN SUMMARY: stop=normal  exps=84  time=31m34s  best_f1=0.7004  best_exp=exp_073_laptop_final_refined_xgb_adasyn_600  total_tokens=815425  gemini_pct=81.5%
+[2026-06-23 16:19:36] [INFO   ] === Phase 1: Data Verification Start ===
+[2026-06-23 16:19:36] [INFO   ] Existing pipeline artifacts found — loading.
+[2026-06-23 16:19:36] [INFO   ] === Phase 1: Data Verification Complete ===
+[2026-06-23 16:19:42] [INFO   ] Sealing test set ...
+[2026-06-23 16:19:42] [INFO   ] Verifying mathematical wall integrity ...
+[2026-06-23 16:19:42] [INFO   ] Mathematical wall INTACT. Safe to proceed.
+[2026-06-23 16:20:14] [AGENT  ] [Orchestrator] Initialising  model=local-qwen3-coder  verbosity=full
+[2026-06-23 16:20:41] [AGENT  ] [Orchestrator] Initialising  model=gemini-flash-lite  verbosity=full
+[2026-06-23 16:20:41] [INFO   ] [LLMManager] Gemini model: applying rpm=5, max_retries=5, min_call_gap=12.0s
+[2026-06-23 16:20:41] [INFO   ] [LLMManager] Active: 'gemini-flash-lite'  |  model_id=gemini/gemini-3.1-flash-lite  |  provider=gemini
+[2026-06-23 16:20:41] [INFO   ] [Orchestrator] DuckDuckGoSearchTool added.
+[2026-06-23 16:20:41] [INFO   ] [Orchestrator] CodeAgent ready. max_steps=500  verbosity_level=2
+[2026-06-23 16:20:41] [AGENT  ] [Orchestrator] Ready. Call run() to start.
+[2026-06-23 16:20:41] [AGENT  ] [Session] Started  session_id=2026-06-23_16-20-41  dir=sessions\2026-06-23_16-20-41
+[2026-06-23 16:20:41] [AGENT  ] [Watchdog] Started. idle_limit=600s  total_limit=7200s  poll=10.0s
+[2026-06-23 16:20:41] [INFO   ] [Orchestrator] final_answer guard installed (min_experiments=80, raise=RuntimeError)
+[2026-06-23 16:20:42] [AGENT  ] [Orchestrator] Launching agent. budget=100  model=gemini-flash-lite  idle=600s  wall=7200s  min_before_stop=80
+[2026-06-23 16:20:46] [INFO   ] [LeaderboardTool] Leaderboard rebuilt from disk.
+[2026-06-23 16:20:46] [INFO   ] [LeaderboardTool] Report generated. total_runs=86  best_f1=0.7004  untried_families=0
+[2026-06-23 16:20:46] [INFO   ] [Context] step=1  input_tokens=4187 (real)  memory_steps=1
+[2026-06-23 16:20:49] [INFO   ] [Context] step=2  input_tokens=5682 (real)  memory_steps=2
+[2026-06-23 16:20:53] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 16:20:53] [AGENT  ] [ExperimentRunner] Starting exp_087_laptop_ensemble_voting_xgb_lgb_rf_ada: ensemble_voting_xgb_lgb_rf_adasyn (family=ensemble_stack)

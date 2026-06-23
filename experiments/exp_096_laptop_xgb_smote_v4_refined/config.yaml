@@ -1,0 +1,10 @@
+architecture_family: ensemble_stack
+exp_id: exp_096_laptop_xgb_smote_v4_refined
+exp_name: xgb_smote_v4_refined
+hyperparams:
+  learning_rate: 0.01
+  max_depth: 8
+  n_estimators: 1500
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:27:30'

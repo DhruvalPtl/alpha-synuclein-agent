@@ -1,0 +1,50 @@
+{
+  "exp_id": "exp_103_laptop_svm_rbf_adasyn",
+  "machine_id": "laptop",
+  "architecture": "svm_rbf_adasyn",
+  "architecture_family": "classical_ml",
+  "hyperparams": {
+    "kernel": "rbf",
+    "C": 1.0,
+    "sampling": "ADASYN"
+  },
+  "timestamp": "2026-06-23T16:31:03",
+  "val_accuracy": 0.666667,
+  "val_f1_macro": 0.504961,
+  "val_f1_per_class": {
+    "0": 0.7948717948717948,
+    "1": 0.3333333333333333,
+    "2": 0.42105263157894735,
+    "3": 0.47058823529411764
+  },
+  "val_confusion_matrix": [
+    [
+      31,
+      2,
+      7,
+      7
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      4,
+      1
+    ],
+    [
+      0,
+      0,
+      1,
+      4
+    ]
+  ],
+  "train_time_seconds": 3.071,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

@@ -1,0 +1,9 @@
+architecture_family: ensemble_stack
+exp_id: exp_091_laptop_lgbm_dart_ensemble
+exp_name: lgbm_dart_ensemble
+hyperparams:
+  boosting_type: dart
+  n_estimators: 500
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:25:00'

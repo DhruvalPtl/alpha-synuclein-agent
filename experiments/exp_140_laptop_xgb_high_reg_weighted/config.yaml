@@ -1,0 +1,11 @@
+architecture_family: classical_ml
+exp_id: exp_140_laptop_xgb_high_reg_weighted
+exp_name: xgb_high_reg_weighted
+hyperparams:
+  max_depth: 3
+  n_estimators: 1000
+  reg_alpha: 1.0
+  reg_lambda: 1.0
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:43:19'

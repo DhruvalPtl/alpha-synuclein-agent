@@ -1,0 +1,65 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 16:39:56
+────────────────────────────────────────────────────────────
+[2026-06-23 16:39:56] [INFO   ] [ExperimentRunner] Files written to experiments\exp_131_laptop_xgb_smotetomek_3
+[2026-06-23 16:39:56] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 16:39:56] [INFO   ] [ExperimentRunner] Audit PASS for exp_131_laptop_xgb_smotetomek_3
+[2026-06-23 16:39:56] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_131_laptop_xgb_smotetomek_3\train_eval.py
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_131_laptop_xgb_smotetomek_3
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Experiment   = exp_131_laptop_xgb_smotetomek_3
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 16:39:58] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_131_laptop_xgb_smotetomek_3\model.py ...
+[2026-06-23 16:39:59] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 16:40:14] [INFO   ]   [harness] [harness] build_and_train() returned in 15.02s
+[2026-06-23 16:40:14] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 16:40:14] [INFO   ]   [harness] [harness] val_accuracy  = 0.8667
+[2026-06-23 16:40:14] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6711
+[2026-06-23 16:40:14] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.946236559139785, '1': 0.5, '2': 0.5714285714285714, '3': 0.6666666666666666}
+[2026-06-23 16:40:14] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_131_laptop_xgb_smotetomek_3\results.json
+[2026-06-23 16:40:14] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6711
+[2026-06-23 16:40:14] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=131  best_f1=0.7287
+[2026-06-23 16:40:14] [AGENT  ] [ExperimentRunner] exp_131_laptop_xgb_smotetomek_3 COMPLETE | val_f1_macro=0.6711 | status=success | time=17.7s
+[2026-06-23 16:40:14] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_131_laptop_xgb_smotetomek_3
+  Arch       : xgb_smotetomek_3
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6711
+  val_accuracy : 0.8667
+  train_time   : 15.0s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9462  |##################  |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.5714  |###########         |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 16:40:14] [INFO   ] [Context] step=39  input_tokens=7707 (real)  memory_steps=8
+[2026-06-23 16:40:14] [AGENT  ] [Orchestrator] Compressing memory after 45 experiments.
+[2026-06-23 16:40:16] [AGENT  ] [Orchestrator] Compression summary (60 words):
+Architectures evaluated include neural networks (`danet_inspired_v1`), ensemble stacks (`balanced_rf_bagging_ensemble`, `xgb_adasyn_weighted`), graph neural networks (`gnn_proxy_smote`), and classical machine learning (`xgb_smotetomek_3`). 
+
+Val_f1_macro scores:
+- danet_inspired_v1, balanced_rf_bagging_ensemble, gnn_proxy_smote, xgb_adasyn_weighted: 0.0000
+- xgb_smotetomek_3: 0.6711
+
+Key insight: Advanced ensemble and deep learning architectures failed to converge on the target distribution, whereas classical XGBoost configurations utilizing SMOTETomek resampling effectively addressed class imbalance.
+
+Current best: `exp_109_laptop_xgb_sweep_4_0_9` (val_f1_macro=0.7287).
+[2026-06-23 16:40:16] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 16:40:19] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 16:40:19] [AGENT  ] [ExperimentRunner] Starting exp_132_laptop_xgb_brf_ensemble_stack: xgb_brf_ensemble_stack (family=ensemble_stack)

@@ -1,0 +1,9 @@
+architecture_family: ensemble_stack
+exp_id: exp_089_laptop_balanced_rf_v1
+exp_name: balanced_rf_v1
+hyperparams:
+  n_estimators: 500
+  sampling: balanced
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:24:26'

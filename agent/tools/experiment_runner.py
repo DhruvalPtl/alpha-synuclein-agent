@@ -122,9 +122,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
 
         You must provide:
           exp_name            : short snake_case name (e.g. "logistic_regression_c1")
-          architecture_family : one of classical_ml / linear / neural_network /
-                                deep_residual / ensemble_stack / attention_based /
-                                graph_neural / automl
           model_code          : Python string defining EXACTLY ONE function:
 
               def build_and_train(X_train, y_train, X_val, y_val, class_weights):
@@ -147,10 +144,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
         "exp_name": {
             "type": "string",
             "description": "Short snake_case experiment name.",
-        },
-        "architecture_family": {
-            "type": "string",
-            "description": "Architecture family (e.g. classical_ml, neural_network).",
         },
         "model_code": {
             "type": "string",
@@ -177,11 +170,12 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
     def forward(
         self,
         exp_name:            str,
-        architecture_family: str,
         model_code:          str,
         hyperparams:         str,
     ) -> str:
         """Execute the experiment and return a formatted results string."""
+
+        architecture_family = _infer_family(model_code)
 
         # ── 1. Resolve experiment ID ──────────────────────────────────────────
         machine_id = _get_machine_id()
@@ -441,6 +435,28 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
 
 
 # ── Module-level helpers ───────────────────────────────────────────────────────
+
+def _infer_family(model_code: str) -> str:
+    code = model_code.lower()
+    if any(k in code for k in ["transformer", "attention", "rope"]):
+        return "attention"
+    if any(k in code for k in ["lstm", "gru", "rnn", "conv1d"]):
+        return "sequence"
+    if any(k in code for k in ["embedding", "char", "token"]):
+        return "embedding"
+    if any(k in code for k in ["xgb", "lgbm", "lightgbm", 
+                                 "catboost", "gradient"]):
+        return "boosting"
+    if any(k in code for k in ["torch", "nn.module", "neural", 
+                                 "mlp", "dense"]):
+        return "neural"
+    if any(k in code for k in ["forest", "tree", "bagging", 
+                                 "extra"]):
+        return "tree_ensemble"
+    if any(k in code for k in ["logistic", "svm", "svc", 
+                                 "linear", "ridge"]):
+        return "linear"
+    return "other"
 
 def _sanitize(name: str) -> str:
     """Convert to safe folder-name characters."""

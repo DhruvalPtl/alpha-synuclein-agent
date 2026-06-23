@@ -1,0 +1,11 @@
+architecture_family: ensemble_stack
+exp_id: exp_132_laptop_xgb_brf_ensemble_stack
+exp_name: xgb_brf_ensemble_stack
+hyperparams:
+  estimators:
+  - XGB
+  - BalancedRF
+  voting: soft
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:40:19'

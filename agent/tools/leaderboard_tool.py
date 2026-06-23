@@ -181,7 +181,7 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
 
         # ── Architecture family coverage ──────────────────────────────────────
         lines.append("\n  ARCHITECTURE FAMILY COVERAGE")
-        lines.append(f"  {'Family':<22} {'Status':<12} {'Best F1':>9}")
+        lines.append(f"  {'Inferred Type':<22} {'Status':<12} {'Best F1':>9}")
         lines.append("  " + "-" * 45)
 
         family_scores: Dict[str, float] = {}

@@ -1,0 +1,11 @@
+architecture_family: classical_ml
+exp_id: exp_133_laptop_xgb_fine_tuned_regularized
+exp_name: xgb_fine_tuned_regularized
+hyperparams:
+  learning_rate: 0.005
+  n_estimators: 1200
+  reg_alpha: 0.5
+  reg_lambda: 1.5
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:40:31'

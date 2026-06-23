@@ -1,0 +1,10 @@
+architecture_family: classical_ml
+exp_id: exp_128_laptop_rf_balanced_1000
+exp_name: rf_balanced_1000
+hyperparams:
+  class_weight: balanced
+  max_depth: 10
+  n_estimators: 1000
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:38:42'

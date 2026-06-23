@@ -1,0 +1,9 @@
+architecture_family: classical_ml
+exp_id: exp_124_laptop_xgb_sweep_8_0_8
+exp_name: xgb_sweep_8_0_8
+hyperparams:
+  max_depth: 8
+  subsample: 0.8
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:37:17'

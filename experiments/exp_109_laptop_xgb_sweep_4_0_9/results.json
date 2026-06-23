@@ -1,0 +1,49 @@
+{
+  "exp_id": "exp_109_laptop_xgb_sweep_4_0_9",
+  "machine_id": "laptop",
+  "architecture": "xgb_sweep_4_0_9",
+  "architecture_family": "classical_ml",
+  "hyperparams": {
+    "max_depth": 4,
+    "subsample": 0.9
+  },
+  "timestamp": "2026-06-23T16:33:03",
+  "val_accuracy": 0.916667,
+  "val_f1_macro": 0.728655,
+  "val_f1_per_class": {
+    "0": 0.9787234042553191,
+    "1": 0.5,
+    "2": 0.7692307692307693,
+    "3": 0.6666666666666666
+  },
+  "val_confusion_matrix": [
+    [
+      46,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      0,
+      5,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 13.438,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

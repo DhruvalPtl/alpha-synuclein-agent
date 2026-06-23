@@ -1,0 +1,11 @@
+architecture_family: classical_ml
+exp_id: exp_098_laptop_xgb_adasyn_optimized
+exp_name: xgb_adasyn_optimized
+hyperparams:
+  learning_rate: 0.03
+  max_depth: 7
+  n_estimators: 1200
+  sampling: ADASYN
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:28:06'

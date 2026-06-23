@@ -387,7 +387,7 @@ class AgentOrchestrator:
             _orig_forward = runner_tool.forward
             _orch = self
 
-            def _tracked_forward(exp_name, architecture_family, model_code, hyperparams):
+            def _tracked_forward(exp_name, model_code, hyperparams="{}"):
                 if _orch._reporter is not None:
                     _orch._reporter.update_exp(exp_name)
                 _orch._session.tick(
@@ -395,7 +395,7 @@ class AgentOrchestrator:
                     step        = _orch._exp_count,
                     status      = "running",
                 )
-                result = _orig_forward(exp_name, architecture_family, model_code, hyperparams)
+                result = _orig_forward(exp_name, model_code, hyperparams)
                 _orch._exp_count += 1
                 _orch._session.tick(
                     current_exp = exp_name,
@@ -579,46 +579,44 @@ class AgentOrchestrator:
                 _rep_logger  = self.logger
 
                 def _guarded_run_experiment(
-                    exp_name, architecture_family, model_code, hyperparams="{}"
+                    exp_name, model_code, hyperparams="{}"
                 ):
                     # ── Read last 3 experiments from leaderboard ──────────────
                     import json as _json, os as _os
+                    from agent.tools.experiment_runner import _infer_family
                     lb_path = _LEADERBOARD_PATH          # module-level Path constant
                     try:
                         if lb_path.exists():
                             _lb = _json.loads(lb_path.read_text())
                             recent = _lb.get("experiments", [])[-3:]
                             if len(recent) == 3:
-                                for kw in _EXPLOIT_KEYWORDS:
-                                    if all(
-                                        kw in e.get("architecture", "").lower()
-                                        for e in recent
-                                    ):
-                                        _rep_logger.warning(
-                                            f"[RepGuard] BLOCKED — last 3 experiments "
-                                            f"all contain '{kw}'. Forcing diversity."
-                                        )
-                                        print(
-                                            f"\n[RepGuard] BLOCKED: last 3 experiments "
-                                            f"all used '{kw}'. You MUST try a genuinely "
-                                            f"different architecture before continuing.\n",
-                                            flush=True,
-                                        )
-                                        raise RuntimeError(
-                                            f"Exploitation detected — last 3 experiments "
-                                            f"all used '{kw}'. You must try a genuinely "
-                                            f"different architecture before continuing. "
-                                            f"Consider: transformers, character embeddings, "
-                                            f"graph methods, or anything not in your recent "
-                                            f"history. Read leaderboard then pick something new."
-                                        )
+                                current_family = _infer_family(model_code)
+                                if all(e.get("architecture_family") == current_family for e in recent):
+                                    _rep_logger.warning(
+                                        f"[RepGuard] BLOCKED — last 3 experiments "
+                                        f"all were '{current_family}'. Forcing diversity."
+                                    )
+                                    print(
+                                        f"\n[RepGuard] BLOCKED: last 3 experiments "
+                                        f"all used '{current_family}'. You MUST try a genuinely "
+                                        f"different architecture before continuing.\n",
+                                        flush=True,
+                                    )
+                                    raise RuntimeError(
+                                        f"Exploitation detected — last 3 experiments "
+                                        f"all used '{current_family}'. You must try a genuinely "
+                                        f"different architecture before continuing. "
+                                        f"Consider: transformers, character embeddings, "
+                                        f"graph methods, or anything not in your recent "
+                                        f"history. Read leaderboard then pick something new."
+                                    )
                     except RuntimeError:
                         raise   # let the guard propagate
                     except Exception:
                         pass    # leaderboard not ready yet — allow experiment
 
                     # All clear — delegate to the tracked forward
-                    return _tracked_fwd(exp_name, architecture_family, model_code, hyperparams)
+                    return _tracked_fwd(exp_name, model_code, hyperparams)
 
                 runner_tool.forward = _guarded_run_experiment
                 self.logger.info(

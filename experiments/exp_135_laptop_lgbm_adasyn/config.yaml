@@ -1,0 +1,9 @@
+architecture_family: classical_ml
+exp_id: exp_135_laptop_lgbm_adasyn
+exp_name: lgbm_adasyn
+hyperparams:
+  model: LGBM
+  resampling: ADASYN
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T16:41:11'

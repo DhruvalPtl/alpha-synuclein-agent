@@ -19,6 +19,7 @@ agent/prompts/system_prompt.py
 agent/tools/__init__.py
 agent/tools/arxiv_tool.py
 agent/tools/audit_tool.py
+agent/tools/char_embedding_template.py
 agent/tools/check_last_session.py
 agent/tools/dev_reset.py
 agent/tools/experiment_runner.py

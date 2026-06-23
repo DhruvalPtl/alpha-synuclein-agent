@@ -1,0 +1,51 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 16:34:44
+────────────────────────────────────────────────────────────
+[2026-06-23 16:34:44] [INFO   ] [ExperimentRunner] Files written to experiments\exp_115_laptop_xgb_sweep_6_0_7
+[2026-06-23 16:34:44] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 16:34:44] [INFO   ] [ExperimentRunner] Audit PASS for exp_115_laptop_xgb_sweep_6_0_7
+[2026-06-23 16:34:44] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_115_laptop_xgb_sweep_6_0_7\train_eval.py
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_115_laptop_xgb_sweep_6_0_7
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Experiment   = exp_115_laptop_xgb_sweep_6_0_7
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 16:34:46] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_115_laptop_xgb_sweep_6_0_7\model.py ...
+[2026-06-23 16:34:47] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 16:35:02] [INFO   ]   [harness] [harness] build_and_train() returned in 14.92s
+[2026-06-23 16:35:02] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 16:35:02] [INFO   ]   [harness] [harness] val_accuracy  = 0.8833
+[2026-06-23 16:35:02] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6849
+[2026-06-23 16:35:02] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9574468085106383, '1': 0.5, '2': 0.6153846153846154, '3': 0.6666666666666666}
+[2026-06-23 16:35:02] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_115_laptop_xgb_sweep_6_0_7\results.json
+[2026-06-23 16:35:02] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6849
+[2026-06-23 16:35:02] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=115  best_f1=0.7287
+[2026-06-23 16:35:02] [AGENT  ] [ExperimentRunner] exp_115_laptop_xgb_sweep_6_0_7 COMPLETE | val_f1_macro=0.6849 | status=success | time=17.6s
+[2026-06-23 16:35:02] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_115_laptop_xgb_sweep_6_0_7
+  Arch       : xgb_sweep_6_0_7
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6849
+  val_accuracy : 0.8833
+  train_time   : 14.9s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9574  |################### |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.6154  |############        |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 16:35:02] [AGENT  ] [ExperimentRunner] Starting exp_116_laptop_xgb_sweep_6_0_8: xgb_sweep_6_0_8 (family=classical_ml)
