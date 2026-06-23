@@ -287,6 +287,10 @@ class AgentOrchestrator:
             )
             self._agent = None
 
+        # ── Minimum-experiments guard (installed in run(), stored here) ───────
+        # Actual override happens in run() once max_experiments is known.
+        self._min_experiments_before_stop: int = 0
+
         # ── Prompt selection ──────────────────────────────────────────────────
         if use_short_prompt or model_name in _SHORT_PROMPT_MODELS:
             self._prompt = SYSTEM_PROMPT_SHORT
@@ -479,33 +483,127 @@ class AgentOrchestrator:
         # Expose total-token counter so _print_run_summary can access it
         self._total_tokens_ref = _total_tokens
 
+        # ── Minimum-experiments before final_answer is allowed ────────────────
+        self._min_experiments_before_stop = int(max_experiments * 0.8)
+
+        # ── Override final_answer to block premature stopping ─────────────────
+        if self._agent is not None:
+            try:
+                _original_fa = self._agent.tools["final_answer"].forward
+                _orch_ref    = self        # closure reference
+                _min_exp     = self._min_experiments_before_stop
+                _logger_ref  = self.logger
+
+                def _guarded_final_answer(answer):
+                    runs = _orch_ref._exp_count
+                    if runs < _min_exp:
+                        msg = (
+                            f"PREMATURE STOP BLOCKED: You have run {runs} "
+                            f"experiments this session but need at least {_min_exp} "
+                            f"before concluding. The leaderboard shows more "
+                            f"architecture families to explore. Keep going."
+                        )
+                        _logger_ref.warning(
+                            f"[Guard] final_answer blocked: "
+                            f"only {runs}/{_min_exp} experiments done"
+                        )
+                        print(
+                            f"\n[Guard] BLOCKED: final_answer rejected -- "
+                            f"{runs}/{_min_exp} experiments done. "
+                            f"Keep exploring!\n",
+                            flush=True,
+                        )
+                        return msg
+                    _logger_ref.agent(
+                        f"[Guard] final_answer approved: "
+                        f"{runs}/{_min_exp} experiments done"
+                    )
+                    return _original_fa(answer)
+
+                self._agent.tools["final_answer"].forward = \
+                    _guarded_final_answer
+                self.logger.info(
+                    f"[Orchestrator] final_answer guard installed "
+                    f"(min_experiments={_min_exp})"
+                )
+            except (KeyError, AttributeError) as _ge:
+                self.logger.warning(
+                    f"[Orchestrator] Could not install final_answer guard: {_ge}"
+                )
+
         # ── Build prompt ───────────────────────────────────────────────────────
         # Initialise explore/exploit controller for this run session
         _ee_ctrl = ExploreExploitController(
             explore_ratio = self._explore_ratio,
             total_budget  = max_experiments,
         )
-        # Read current leaderboard state for phase instruction
+
+        # Reload leaderboard for dynamic session context
         _lb_state: dict = {}
         try:
-            if _LEADERBOARD_PATH.exists():
-                _lb_state = json.loads(_LEADERBOARD_PATH.read_text())
+            from agent.tools.rebuild_leaderboard import rebuild_leaderboard
+            _lb_state = rebuild_leaderboard(verbose=False)
         except Exception:
-            pass
+            try:
+                if _LEADERBOARD_PATH.exists():
+                    _lb_state = json.loads(_LEADERBOARD_PATH.read_text())
+            except Exception:
+                pass
+
         _phase_instruction = _ee_ctrl.get_phase_instruction(_lb_state)
 
-        prompt = self._prompt + (
-            f"\n\nADDITIONAL CONSTRAINT FOR THIS SESSION:\n"
-            f"Maximum experiments allowed: {max_experiments}.\n"
-            f"Session ID: {self._session.session_id}\n"
-            f"Current time: {datetime.datetime.now().isoformat(timespec='seconds')}\n"
-            f"Idle timeout: {idle_limit}s    Total timeout: {total_limit}s\n"
-        ) + _phase_instruction
+        # Build rich session context from leaderboard
+        import os as _os
+        _ALL_FAMILIES = [
+            "classical_ml", "linear", "neural_network", "deep_residual",
+            "ensemble_stack", "attention_based", "sequence_model",
+            "modern_tabular", "protein_embedding",
+        ]
+        _tried_families  = _lb_state.get("families_completed", [])
+        _not_tried       = [f for f in _ALL_FAMILIES if f not in _tried_families]
+        _best_f1         = _lb_state.get("best_val_f1_macro", 0.0)
+        _best_exp        = _lb_state.get("best_experiment", "none yet")
+        _total_ever      = _lb_state.get("total_runs", 0)
+
+        _session_context = (
+            f"\n\n=== THIS SESSION ==="
+            f"\nBudget this session          : {max_experiments} experiments"
+            f"\nTotal experiments ever run   : {_total_ever} (across all sessions)"
+            f"\nFamilies tried (all sessions): "
+            f"{_tried_families if _tried_families else 'none yet'}"
+            f"\nFamilies NOT tried yet       : "
+            f"{_not_tried if _not_tried else 'all tried!'}"
+            f"\nCurrent best                 : {_best_f1:.4f}  ({_best_exp})"
+            f"\n"
+            f"\nINSTRUCTIONS FOR THIS SESSION:"
+            f"\n1. Read the leaderboard first (call read_leaderboard)."
+            f"\n2. Try architecture families from the NOT TRIED list first."
+            f"\n3. Do not repeat experiments already in the leaderboard."
+            f"\n4. You MUST run at least {self._min_experiments_before_stop} new experiments"
+            f"\n   this session before you are allowed to call final_answer."
+            f"\n5. If you find a good model early, do NOT stop --"
+            f"\n   instead write: 'X works well. Now I will explore Y to confirm"
+            f"\n   X is the true best and not just the first thing that worked.'"
+            f"\n"
+            f"\nSession ID : {self._session.session_id}"
+            f"\nMachine    : {_os.getenv('MACHINE_ID', 'unknown')}"
+            f"\nIdle timeout: {idle_limit}s    Total timeout: {total_limit}s"
+        )
+
+        task_prompt = (
+            self._prompt
+            + f"\n\nADDITIONAL CONSTRAINT FOR THIS SESSION:"
+            f"\nMaximum experiments allowed: {max_experiments}."
+            f"\nCurrent time: {datetime.datetime.now().isoformat(timespec='seconds')}"
+            + _session_context
+            + _phase_instruction
+        )
 
         self.logger.agent(
             f"[Orchestrator] Launching agent. "
             f"budget={max_experiments}  model={self.model_name}  "
-            f"idle={idle_limit}s  wall={total_limit}s"
+            f"idle={idle_limit}s  wall={total_limit}s  "
+            f"min_before_stop={self._min_experiments_before_stop}"
         )
         self._save_state("running")
 
@@ -516,7 +614,7 @@ class AgentOrchestrator:
         stop_reason = "normal"
 
         try:
-            result = self._agent.run(prompt)
+            result = self._agent.run(task_prompt)
             if self._stop_event.is_set():
                 # Watchdog or user button triggered stop
                 stop_reason = self._watchdog.stop_reason or "interrupted"

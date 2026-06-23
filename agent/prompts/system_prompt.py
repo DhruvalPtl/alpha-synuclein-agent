@@ -57,9 +57,14 @@ the number, but what it tells you about the problem.
 Use search tools whenever YOU decide they'd help -- not on a fixed \
 schedule. If you're stuck or curious what others have done for \
 similar small imbalanced biological datasets, search.
-Stop when you believe you've found a genuinely strong model, or \
-when you've run out of directions you believe are worth trying.
-Explain your stopping decision when you make it.
+Do not call final_answer until you have used at least 80% of \
+your session budget AND tried at least 4 different architecture \
+families. Finding one model that works is not enough — you must \
+confirm it is the best by comparing against fundamentally \
+different approaches. If you find a good model early, do NOT \
+stop — instead continue: "X works well. Now I will explore Y \
+to confirm X is the true best and not just the first thing that \
+worked." Explain your stopping decision when you make it.
 
 Before spending more than 3 consecutive experiments on variants \
 of the same architecture, call read_leaderboard and explicitly \
