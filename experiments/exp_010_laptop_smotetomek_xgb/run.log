@@ -1,0 +1,75 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:46:16
+────────────────────────────────────────────────────────────
+[2026-06-23 11:46:16] [INFO   ] [ExperimentRunner] Files written to experiments\exp_010_laptop_smotetomek_xgb
+[2026-06-23 11:46:16] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:46:16] [INFO   ] [ExperimentRunner] Audit PASS for exp_010_laptop_smotetomek_xgb
+[2026-06-23 11:46:16] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_010_laptop_smotetomek_xgb\train_eval.py
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_010_laptop_smotetomek_xgb
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Experiment   = exp_010_laptop_smotetomek_xgb
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_010_laptop_smotetomek_xgb\model.py ...
+[2026-06-23 11:46:18] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:46:21] [INFO   ]   [harness] d:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\xgboost\training.py:200: UserWarning: [11:46:21] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\learner.cc:793: 
+[2026-06-23 11:46:21] [INFO   ]   [harness] Parameters: { "use_label_encoder" } are not used.
+[2026-06-23 11:46:21] [INFO   ]   [harness] 
+[2026-06-23 11:46:21] [INFO   ]   [harness]   bst.update(dtrain, iteration=i, fobj=obj)
+[2026-06-23 11:46:29] [INFO   ]   [harness] [harness] build_and_train() returned in 10.40s
+[2026-06-23 11:46:29] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:46:29] [INFO   ]   [harness] [harness] val_accuracy  = 0.9000
+[2026-06-23 11:46:29] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6780
+[2026-06-23 11:46:29] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9787234042553191, '1': 0.4, '2': 0.6666666666666666, '3': 0.6666666666666666}
+[2026-06-23 11:46:29] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_010_laptop_smotetomek_xgb\results.json
+[2026-06-23 11:46:29] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6780
+[2026-06-23 11:46:29] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=10  best_f1=0.6810
+[2026-06-23 11:46:29] [AGENT  ] [ExperimentRunner] exp_010_laptop_smotetomek_xgb COMPLETE | val_f1_macro=0.6780 | status=success | time=13.3s
+[2026-06-23 11:46:29] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_010_laptop_smotetomek_xgb
+  Arch       : smotetomek_xgb
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6780
+  val_accuracy : 0.9000
+  train_time   : 10.4s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9787  |################### |
+    1 (Low   ): 0.4000  |########            |
+    2 (Medium): 0.6667  |#############       |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 11:46:29] [INFO   ] [Context] step=17  input_tokens=9996 (real)  memory_steps=11
+[2026-06-23 11:46:29] [AGENT  ] [Orchestrator] Compressing memory after 10 experiments.
+[2026-06-23 11:46:31] [AGENT  ] [Orchestrator] Compression summary (57 words):
+Architectures tested include linear models (Logistic Regression), ensemble stacking, and classical gradient-boosted models (LightGBM and XGBoost). Val_f1_macro scores achieved were: Logistic (0.6431), Stacking (0.5200), SMOTE-LGBM (0.6257), and SMOTE-Tomek-XGB (0.6780). 
+
+Key insight: Resampling techniques like SMOTE-Tomek significantly improve performance on minority classes compared to standard ensemble stacking. 
+
+The current best model is exp_002_laptop_smote_xgboost with a val_f1_macro of 0.6810.
+[2026-06-23 11:46:31] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 11:46:36] [AGENT  ] [ArxivTool] Searching: 'peptide sequence classification imbalanced deep learning'  (max=3)
+[2026-06-23 11:46:37] [INFO   ] [ArxivTool] Retrieved 3 papers.
+[2026-06-23 11:46:37] [INFO   ] [Throttle:gemini] sleeping 3.92s (target 5 RPM)
+[2026-06-23 11:46:43] [AGENT  ] [ArxivTool] ACTIONABLE: Learn to Accumulate Evidence from All Training Samples: Theo
+[2026-06-23 11:46:43] [INFO   ] [Throttle:gemini] sleeping 10.56s (target 5 RPM)
+[2026-06-23 11:46:54] [INFO   ] [ArxivTool] SKIP: The Modern Mathematics of Deep Learning
+[2026-06-23 11:46:54] [INFO   ] [Throttle:gemini] sleeping 11.06s (target 5 RPM)
+[2026-06-23 11:47:07] [AGENT  ] [ArxivTool] ACTIONABLE: Generalized Oversampling for Learning from Imbalanced datase
+[2026-06-23 11:47:07] [AGENT  ] [ArxivTool] Report ready: 2 actionable papers.
+[2026-06-23 11:47:07] [INFO   ] [Context] step=18  input_tokens=4359 (real)  memory_steps=2
+[2026-06-23 11:47:12] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:47:12] [AGENT  ] [ExperimentRunner] Starting exp_011_laptop_attention_mlp_v1: attention_mlp_v1 (family=attention_based)

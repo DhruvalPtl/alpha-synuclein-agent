@@ -1,0 +1,12 @@
+architecture_family: ensemble_stack
+exp_id: exp_036_laptop_stack_lgbm_brf
+exp_name: stack_lgbm_brf
+hyperparams:
+  ensemble: Stacking
+  meta_learner: LogisticRegression
+  models:
+  - LGBM
+  - BalancedRF
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:59:56'

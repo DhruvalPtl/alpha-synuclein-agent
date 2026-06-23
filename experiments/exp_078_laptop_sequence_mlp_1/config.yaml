@@ -1,0 +1,8 @@
+architecture_family: sequence_model
+exp_id: exp_078_laptop_sequence_mlp_1
+exp_name: sequence_mlp_1
+hyperparams:
+  iter: 1
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:12:24'

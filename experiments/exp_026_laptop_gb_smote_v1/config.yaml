@@ -1,0 +1,10 @@
+architecture_family: classical_ml
+exp_id: exp_026_laptop_gb_smote_v1
+exp_name: gb_smote_v1
+hyperparams:
+  model: GradientBoosting
+  n_estimators: 200
+  sampling: SMOTE
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:55:28'

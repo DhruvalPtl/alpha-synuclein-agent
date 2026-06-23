@@ -566,6 +566,70 @@ class AgentOrchestrator:
                     f"[Orchestrator] Could not install final_answer guard: {_ge}"
                 )
 
+        # ── Override run_experiment to block exploitation loops ───────────────
+        # If the last 3 experiments all share the same base-learner keyword,
+        # raise RuntimeError so the agent must try something genuinely different.
+        if runner_tool is not None:
+            try:
+                _EXPLOIT_KEYWORDS = ["xgb", "rf", "lgbm", "mlp", "svc", "gb"]
+                # At this point runner_tool.forward is already _tracked_forward
+                # (set earlier in run()).  We wrap that to add the repetition check
+                # while keeping tracking intact.
+                _tracked_fwd = runner_tool.forward
+                _rep_logger  = self.logger
+
+                def _guarded_run_experiment(
+                    exp_name, architecture_family, model_code, hyperparams="{}"
+                ):
+                    # ── Read last 3 experiments from leaderboard ──────────────
+                    import json as _json, os as _os
+                    lb_path = _LEADERBOARD_PATH          # module-level Path constant
+                    try:
+                        if lb_path.exists():
+                            _lb = _json.loads(lb_path.read_text())
+                            recent = _lb.get("experiments", [])[-3:]
+                            if len(recent) == 3:
+                                for kw in _EXPLOIT_KEYWORDS:
+                                    if all(
+                                        kw in e.get("architecture", "").lower()
+                                        for e in recent
+                                    ):
+                                        _rep_logger.warning(
+                                            f"[RepGuard] BLOCKED — last 3 experiments "
+                                            f"all contain '{kw}'. Forcing diversity."
+                                        )
+                                        print(
+                                            f"\n[RepGuard] BLOCKED: last 3 experiments "
+                                            f"all used '{kw}'. You MUST try a genuinely "
+                                            f"different architecture before continuing.\n",
+                                            flush=True,
+                                        )
+                                        raise RuntimeError(
+                                            f"Exploitation detected — last 3 experiments "
+                                            f"all used '{kw}'. You must try a genuinely "
+                                            f"different architecture before continuing. "
+                                            f"Consider: transformers, character embeddings, "
+                                            f"graph methods, or anything not in your recent "
+                                            f"history. Read leaderboard then pick something new."
+                                        )
+                    except RuntimeError:
+                        raise   # let the guard propagate
+                    except Exception:
+                        pass    # leaderboard not ready yet — allow experiment
+
+                    # All clear — delegate to the tracked forward
+                    return _tracked_fwd(exp_name, architecture_family, model_code, hyperparams)
+
+                runner_tool.forward = _guarded_run_experiment
+                self.logger.info(
+                    "[Orchestrator] run_experiment repetition guard installed "
+                    "(blocks 3 consecutive same-base-learner runs, raise=RuntimeError)"
+                )
+            except Exception as _rge:
+                self.logger.warning(
+                    f"[Orchestrator] Could not install run_experiment guard: {_rge}"
+                )
+
         # ── Build prompt ───────────────────────────────────────────────────────
         # Initialise explore/exploit controller for this run session
         _ee_ctrl = ExploreExploitController(

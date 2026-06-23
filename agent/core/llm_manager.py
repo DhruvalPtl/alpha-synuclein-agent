@@ -45,8 +45,10 @@ MODELS: Dict[str, str] = {
     "cerebras":       "cerebras/llama-3.3-70b",
     "openrouter":     "openrouter/meta-llama/llama-3.3-70b",
     # ── Ollama (local, http://localhost:11434) ───────────────────────
-    "local-qwen":     "ollama/qwen2.5-coder:32b",
-    "local-deepseek": "ollama/deepseek-r1:14b",
+    "local-qwen":         "ollama/qwen2.5-coder:32b",
+    "local-deepseek":     "ollama/deepseek-r1:14b",
+    "local-qwen3-coder":  "ollama/qwen3-coder:30b",
+    "local-qwen3":        "ollama/qwen3.6:27b",
     # ── LM Studio (local, http://localhost:1234/v1) ──────────────────
     # In LM Studio: enable the local server, load any model, then
     # set MODEL_NAME to one of the keys below that matches what you

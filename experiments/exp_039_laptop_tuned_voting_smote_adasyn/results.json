@@ -1,0 +1,55 @@
+{
+  "exp_id": "exp_039_laptop_tuned_voting_smote_adasyn",
+  "machine_id": "laptop",
+  "architecture": "tuned_voting_smote_adasyn",
+  "architecture_family": "ensemble_stack",
+  "hyperparams": {
+    "ensemble": "Voting",
+    "samplers": [
+      "SMOTE",
+      "ADASYN"
+    ],
+    "model": "XGBoost",
+    "reg_alpha": 0.1,
+    "reg_lambda": 1.0
+  },
+  "timestamp": "2026-06-23T12:01:14",
+  "val_accuracy": 0.883333,
+  "val_f1_macro": 0.683425,
+  "val_f1_per_class": {
+    "0": 0.967032967032967,
+    "1": 0.5,
+    "2": 0.6666666666666666,
+    "3": 0.6
+  },
+  "val_confusion_matrix": [
+    [
+      44,
+      1,
+      1,
+      1
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      5,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 4.891,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

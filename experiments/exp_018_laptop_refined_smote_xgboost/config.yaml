@@ -1,0 +1,12 @@
+architecture_family: classical_ml
+exp_id: exp_018_laptop_refined_smote_xgboost
+exp_name: refined_smote_xgboost
+hyperparams:
+  learning_rate: 0.01
+  max_depth: 5
+  model: XGBoost
+  n_estimators: 300
+  sampler: SMOTE
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:51:00'

@@ -1,0 +1,9 @@
+architecture_family: ensemble_stack
+exp_id: exp_016_laptop_balanced_rf_ensemble
+exp_name: balanced_rf_ensemble
+hyperparams:
+  model: BalancedRandomForest
+  n_estimators: 200
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:50:00'

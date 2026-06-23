@@ -1,0 +1,9 @@
+architecture_family: ensemble_stack
+exp_id: exp_013_laptop_xgb_ensemble
+exp_name: xgb_ensemble
+hyperparams:
+  estimators: 3
+  model: VotingClassifier_XGB
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:48:07'

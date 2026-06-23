@@ -1,0 +1,77 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:44:15
+────────────────────────────────────────────────────────────
+[2026-06-23 11:44:15] [INFO   ] [ExperimentRunner] Files written to experiments\exp_005_laptop_mlp_balanced
+[2026-06-23 11:44:15] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:44:15] [INFO   ] [ExperimentRunner] Audit PASS for exp_005_laptop_mlp_balanced
+[2026-06-23 11:44:15] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_005_laptop_mlp_balanced\train_eval.py
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_005_laptop_mlp_balanced
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Experiment   = exp_005_laptop_mlp_balanced
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_005_laptop_mlp_balanced\model.py ...
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] build_and_train() returned in 0.63s
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] val_accuracy  = 0.8500
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6209
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9555555555555556, '1': 0.4, '2': 0.46153846153846156, '3': 0.6666666666666666}
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_005_laptop_mlp_balanced\results.json
+[2026-06-23 11:44:21] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6209
+[2026-06-23 11:44:21] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=5  best_f1=0.6810
+[2026-06-23 11:44:21] [AGENT  ] [ExperimentRunner] exp_005_laptop_mlp_balanced COMPLETE | val_f1_macro=0.6209 | status=success | time=6.1s
+[2026-06-23 11:44:21] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_005_laptop_mlp_balanced
+  Arch       : mlp_balanced
+  Family     : neural_network
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6209
+  val_accuracy : 0.8500
+  train_time   : 0.6s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9556  |################### |
+    1 (Low   ): 0.4000  |########            |
+    2 (Medium): 0.4615  |#########           |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 11:44:21] [INFO   ] [Context] step=7  input_tokens=9213 (real)  memory_steps=7
+[2026-06-23 11:44:21] [AGENT  ] [Orchestrator] Compressing memory after 5 experiments.
+[2026-06-23 11:44:23] [AGENT  ] [Orchestrator] Compression summary (67 words):
+Architectures tested include Random Forest, SMOTE-boosted XGBoost, Stacking Ensembles, LightGBM (balanced), and an MLP (balanced). Performance metrics (val_f1_macro) are as follows: SMOTE-XGBoost (0.6810), MLP (0.6209), LGBM (0.5883), Stacking Ensemble (0.5489), and Random Forest (0.5442). 
+
+Key insight: Addressing class imbalance via SMOTE significantly improves performance compared to standard balancing techniques or complex ensemble methods. 
+
+The current best performer is the SMOTE-XGBoost model with an F1-macro score of 0.6810.
+[2026-06-23 11:44:23] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 11:44:27] [AGENT  ] [ArxivTool] Searching: 'XGBoost imbalanced classification performance'  (max=3)
+[2026-06-23 11:44:28] [INFO   ] [ArxivTool] Retrieved 3 papers.
+[2026-06-23 11:44:28] [INFO   ] [Throttle:gemini] sleeping 5.22s (target 5 RPM)
+[2026-06-23 11:44:35] [AGENT  ] [ArxivTool] ACTIONABLE: Generalized Oversampling for Learning from Imbalanced datase
+[2026-06-23 11:44:35] [INFO   ] [Throttle:gemini] sleeping 10.78s (target 5 RPM)
+[2026-06-23 11:44:46] [INFO   ] [ArxivTool] SKIP: Imbalance-XGBoost: Leveraging Weighted and Focal Losses for 
+[2026-06-23 11:44:46] [INFO   ] [Throttle:gemini] sleeping 11.05s (target 5 RPM)
+[2026-06-23 11:44:59] [AGENT  ] [ArxivTool] ACTIONABLE: Selecting the suitable resampling strategy for imbalanced da
+[2026-06-23 11:44:59] [AGENT  ] [ArxivTool] Report ready: 2 actionable papers.
+[2026-06-23 11:44:59] [INFO   ] [Context] step=8  input_tokens=4477 (real)  memory_steps=2
+[2026-06-23 11:45:01] [INFO   ] [Context] step=9  input_tokens=5173 (real)  memory_steps=3
+[2026-06-23 11:45:04] [INFO   ] [LeaderboardTool] Leaderboard rebuilt from disk.
+[2026-06-23 11:45:04] [INFO   ] [LeaderboardTool] Report generated. total_runs=5  best_f1=0.6810  untried_families=5
+[2026-06-23 11:45:04] [INFO   ] [Context] step=10  input_tokens=5234 (real)  memory_steps=4
+[2026-06-23 11:45:07] [INFO   ] [Context] step=11  input_tokens=6090 (real)  memory_steps=5
+[2026-06-23 11:45:09] [INFO   ] [Context] step=12  input_tokens=6152 (real)  memory_steps=6
+[2026-06-23 11:45:13] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:45:13] [AGENT  ] [ExperimentRunner] Starting exp_006_laptop_logistic_balanced: logistic_balanced (family=linear)

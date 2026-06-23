@@ -1,0 +1,11 @@
+architecture_family: ensemble_stack
+exp_id: exp_046_laptop_brf_deep_tuned
+exp_name: brf_deep_tuned
+hyperparams:
+  max_depth: 12
+  model: BalancedRandomForest
+  n_estimators: 500
+  sampling: all
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:03:15'

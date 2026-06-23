@@ -1,0 +1,53 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:48:24
+────────────────────────────────────────────────────────────
+[2026-06-23 11:48:24] [INFO   ] [ExperimentRunner] Files written to experiments\exp_014_laptop_resnet_tabular
+[2026-06-23 11:48:24] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:48:24] [INFO   ] [ExperimentRunner] Audit PASS for exp_014_laptop_resnet_tabular
+[2026-06-23 11:48:24] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_014_laptop_resnet_tabular\train_eval.py
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_014_laptop_resnet_tabular
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Experiment   = exp_014_laptop_resnet_tabular
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_014_laptop_resnet_tabular\model.py ...
+[2026-06-23 11:48:27] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:48:43] [INFO   ]   [harness] [harness] build_and_train() returned in 16.01s
+[2026-06-23 11:48:43] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:48:43] [INFO   ]   [harness] [harness] val_accuracy  = 0.8000
+[2026-06-23 11:48:43] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5130
+[2026-06-23 11:48:43] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9247311827956989, '1': 0.4, '2': 0.36363636363636365, '3': 0.36363636363636365}
+[2026-06-23 11:48:43] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_014_laptop_resnet_tabular\results.json
+[2026-06-23 11:48:43] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5130
+[2026-06-23 11:48:44] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=14  best_f1=0.6810
+[2026-06-23 11:48:44] [AGENT  ] [ExperimentRunner] exp_014_laptop_resnet_tabular COMPLETE | val_f1_macro=0.5130 | status=success | time=20.0s
+[2026-06-23 11:48:44] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_014_laptop_resnet_tabular
+  Arch       : resnet_tabular
+  Family     : deep_residual
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.5130
+  val_accuracy : 0.8000
+  train_time   : 16.0s
+  model_params : 0
+
+  Per-class F1:
+    0 (No    ): 0.9247  |##################  |
+    1 (Low   ): 0.4000  |########            |
+    2 (Medium): 0.3636  |#######             |
+    3 (High  ): 0.3636  |#######             |
+==============================================================
+[2026-06-23 11:48:44] [INFO   ] [Context] step=24  input_tokens=10200 (real)  memory_steps=8
+[2026-06-23 11:48:50] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:48:50] [AGENT  ] [ExperimentRunner] Starting exp_015_laptop_automl_rf_smote: automl_rf_smote (family=automl)

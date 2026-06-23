@@ -1,0 +1,70 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:42:40
+────────────────────────────────────────────────────────────
+[2026-06-23 11:42:40] [INFO   ] [ExperimentRunner] Files written to experiments\exp_002_laptop_smote_xgboost
+[2026-06-23 11:42:40] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:42:40] [INFO   ] [ExperimentRunner] Audit PASS for exp_002_laptop_smote_xgboost
+[2026-06-23 11:42:40] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_002_laptop_smote_xgboost\train_eval.py
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_002_laptop_smote_xgboost
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Experiment   = exp_002_laptop_smote_xgboost
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_002_laptop_smote_xgboost\model.py ...
+[2026-06-23 11:42:45] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:42:47] [INFO   ]   [harness] d:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\xgboost\training.py:200: UserWarning: [11:42:47] WARNING: C:\actions-runner\_work\xgboost\xgboost\src\learner.cc:793: 
+[2026-06-23 11:42:47] [INFO   ]   [harness] Parameters: { "use_label_encoder" } are not used.
+[2026-06-23 11:42:47] [INFO   ]   [harness] 
+[2026-06-23 11:42:47] [INFO   ]   [harness]   bst.update(dtrain, iteration=i, fobj=obj)
+[2026-06-23 11:42:47] [INFO   ]   [harness] [harness] build_and_train() returned in 2.09s
+[2026-06-23 11:42:47] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:42:47] [INFO   ]   [harness] [harness] val_accuracy  = 0.8833
+[2026-06-23 11:42:47] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6810
+[2026-06-23 11:42:47] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9574468085106383, '1': 0.5, '2': 0.6666666666666666, '3': 0.6}
+[2026-06-23 11:42:47] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_002_laptop_smote_xgboost\results.json
+[2026-06-23 11:42:47] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6810
+[2026-06-23 11:42:47] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=2  best_f1=0.6810
+[2026-06-23 11:42:47] [AGENT  ] [ExperimentRunner] exp_002_laptop_smote_xgboost COMPLETE | val_f1_macro=0.6810 | status=success | time=7.5s
+[2026-06-23 11:42:47] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_002_laptop_smote_xgboost
+  Arch       : smote_xgboost
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6810
+  val_accuracy : 0.8833
+  train_time   : 2.1s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9574  |################### |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.6667  |#############       |
+    3 (High  ): 0.6000  |############        |
+==============================================================
+[2026-06-23 11:42:47] [INFO   ] [Context] step=3  input_tokens=5371 (real)  memory_steps=3
+[2026-06-23 11:42:49] [AGENT  ] [ArxivTool] Searching: 'peptide classification imbalanced small dataset'  (max=5)
+[2026-06-23 11:42:51] [INFO   ] [ArxivTool] Retrieved 5 papers.
+[2026-06-23 11:42:53] [AGENT  ] [ArxivTool] ACTIONABLE: Selecting the suitable resampling strategy for imbalanced da
+[2026-06-23 11:42:53] [INFO   ] [Throttle:gemini] sleeping 10.73s (target 5 RPM)
+[2026-06-23 11:43:04] [INFO   ] [ArxivTool] SKIP: The RSNA Abdominal Traumatic Injury CT (RATIC) Dataset
+[2026-06-23 11:43:04] [INFO   ] [Throttle:gemini] sleeping 11.03s (target 5 RPM)
+[2026-06-23 11:43:16] [AGENT  ] [ArxivTool] ACTIONABLE: Generalized Oversampling for Learning from Imbalanced datase
+[2026-06-23 11:43:16] [INFO   ] [Throttle:gemini] sleeping 10.92s (target 5 RPM)
+[2026-06-23 11:43:28] [INFO   ] [ArxivTool] SKIP: The RSNA Lumbar Degenerative Imaging Spine Classification (L
+[2026-06-23 11:43:28] [INFO   ] [Throttle:gemini] sleeping 11.03s (target 5 RPM)
+[2026-06-23 11:43:41] [AGENT  ] [ArxivTool] ACTIONABLE: Classification of Imbalanced Credit scoring data sets Based 
+[2026-06-23 11:43:41] [AGENT  ] [ArxivTool] Report ready: 3 actionable papers.
+[2026-06-23 11:43:41] [INFO   ] [Context] step=4  input_tokens=6413 (real)  memory_steps=4
+[2026-06-23 11:43:44] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:43:44] [AGENT  ] [ExperimentRunner] Starting exp_003_laptop_stacking_clf_ensemble: stacking_clf_ensemble (family=ensemble_stack)

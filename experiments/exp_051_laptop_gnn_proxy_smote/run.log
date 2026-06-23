@@ -1,0 +1,62 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 12:04:33
+────────────────────────────────────────────────────────────
+[2026-06-23 12:04:33] [INFO   ] [ExperimentRunner] Files written to experiments\exp_051_laptop_gnn_proxy_smote
+[2026-06-23 12:04:33] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:04:33] [INFO   ] [ExperimentRunner] Audit PASS for exp_051_laptop_gnn_proxy_smote
+[2026-06-23 12:04:33] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_051_laptop_gnn_proxy_smote\train_eval.py
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_051_laptop_gnn_proxy_smote
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Experiment   = exp_051_laptop_gnn_proxy_smote
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_051_laptop_gnn_proxy_smote\model.py ...
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] build_and_train() RAISED:
+[2026-06-23 12:04:36] [INFO   ]   [harness] Traceback (most recent call last):
+[2026-06-23 12:04:36] [INFO   ]   [harness]   File "D:\3rd sem M.tech\agent_workspace\experiments\exp_051_laptop_gnn_proxy_smote\train_eval.py", line 158, in <module>
+[2026-06-23 12:04:36] [INFO   ]   [harness]     model = build_and_train(X_train, y_train, X_val, y_val, class_weights)
+[2026-06-23 12:04:36] [INFO   ]   [harness]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-06-23 12:04:36] [INFO   ]   [harness]   File "D:\3rd sem M.tech\agent_workspace\experiments\exp_051_laptop_gnn_proxy_smote\model.py", line 20, in build_and_train
+[2026-06-23 12:04:36] [INFO   ]   [harness]     model.fit(X_train, y_train)
+[2026-06-23 12:04:36] [INFO   ]   [harness]   File "d:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\sklearn\base.py", line 1403, in wrapper
+[2026-06-23 12:04:36] [INFO   ]   [harness]     return fit_method(estimator, *args, **kwargs)
+[2026-06-23 12:04:36] [INFO   ]   [harness]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-06-23 12:04:36] [INFO   ]   [harness]   File "d:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\sklearn\pipeline.py", line 636, in fit
+[2026-06-23 12:04:36] [INFO   ]   [harness]     Xt = self._fit(
+[2026-06-23 12:04:36] [INFO   ]   [harness]          ^^^^^^^^^^
+[2026-06-23 12:04:36] [INFO   ]   [harness]   File "d:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\sklearn\pipeline.py", line 529, in _fit
+[2026-06-23 12:04:36] [INFO   ]   [harness]     self._validate_steps()
+[2026-06-23 12:04:36] [INFO   ]   [harness]   File "d:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\sklearn\pipeline.py", line 311, in _validate_steps
+[2026-06-23 12:04:36] [INFO   ]   [harness]     raise TypeError(
+[2026-06-23 12:04:36] [INFO   ]   [harness] TypeError: All intermediate steps should be transformers and implement fit and transform or be the string 'passthrough' 'SMOTE(random_state=42)' (type <class 'imblearn.over_sampling._smote.base.SMOTE'>) doesn't
+[2026-06-23 12:04:36] [INFO   ]   [harness] 
+[2026-06-23 12:04:36] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_051_laptop_gnn_proxy_smote\results.json
+[2026-06-23 12:04:36] [ERROR  ] [ExperimentRunner] harness exit code=1
+[2026-06-23 12:04:36] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=51  best_f1=0.6849
+[2026-06-23 12:04:36] [AGENT  ] [ExperimentRunner] exp_051_laptop_gnn_proxy_smote COMPLETE | val_f1_macro=0.0000 | status=failed | time=3.0s
+[2026-06-23 12:04:36] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_051_laptop_gnn_proxy_smote
+  Arch       : gnn_proxy_smote
+  Family     : graph_neural
+  Machine    : laptop
+  Status     : failed
+==============================================================
+  ERROR: build_and_train() raised TypeError: All intermediate steps should be transformers and implement fit and transform or be the string 'passthrough' 'SMOTE(random_state=42)' (type <class 'imblearn.over_sampling._smote.base.SMOTE'>) doesn't
+Traceback (most recent call last):
+  File "D:\3rd sem M.tech\agent_workspace\experiments\exp_051_laptop_gnn_proxy_smote\train_eval.py", line 158, in <module>
+    model = build_and_train(X_train, y_train, X_val, y_val, class_weights)
+            ^^^^^^^^^^^^^^^^^^^
+==============================================================
+[2026-06-23 12:04:36] [INFO   ] [Context] step=74  input_tokens=5541 (real)  memory_steps=3
+[2026-06-23 12:04:40] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:04:40] [AGENT  ] [ExperimentRunner] Starting exp_052_laptop_gnn_proxy_smote_fixed: gnn_proxy_smote_fixed (family=graph_neural)

@@ -1,0 +1,53 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:53:09
+────────────────────────────────────────────────────────────
+[2026-06-23 11:53:09] [INFO   ] [ExperimentRunner] Files written to experiments\exp_021_laptop_fixed_modern_tabular_mlp
+[2026-06-23 11:53:09] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:53:09] [INFO   ] [ExperimentRunner] Audit PASS for exp_021_laptop_fixed_modern_tabular_mlp
+[2026-06-23 11:53:09] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_021_laptop_fixed_modern_tabular_mlp\train_eval.py
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_021_laptop_fixed_modern_tabular_mlp
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Experiment   = exp_021_laptop_fixed_modern_tabular_mlp
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_021_laptop_fixed_modern_tabular_mlp\model.py ...
+[2026-06-23 11:53:11] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:53:26] [INFO   ]   [harness] [harness] build_and_train() returned in 14.88s
+[2026-06-23 11:53:26] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:53:26] [INFO   ]   [harness] [harness] val_accuracy  = 0.6000
+[2026-06-23 11:53:26] [INFO   ]   [harness] [harness] val_f1_macro  = 0.3768
+[2026-06-23 11:53:26] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.7848101265822784, '1': 0.2222222222222222, '2': 0.25, '3': 0.25}
+[2026-06-23 11:53:26] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_021_laptop_fixed_modern_tabular_mlp\results.json
+[2026-06-23 11:53:26] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.3768
+[2026-06-23 11:53:27] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=21  best_f1=0.6810
+[2026-06-23 11:53:27] [AGENT  ] [ExperimentRunner] exp_021_laptop_fixed_modern_tabular_mlp COMPLETE | val_f1_macro=0.3768 | status=success | time=18.6s
+[2026-06-23 11:53:27] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_021_laptop_fixed_modern_tabular_mlp
+  Arch       : fixed_modern_tabular_mlp
+  Family     : neural_network
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.3768
+  val_accuracy : 0.6000
+  train_time   : 14.9s
+  model_params : 0
+
+  Per-class F1:
+    0 (No    ): 0.7848  |###############     |
+    1 (Low   ): 0.2222  |####                |
+    2 (Medium): 0.2500  |#####               |
+    3 (High  ): 0.2500  |#####               |
+==============================================================
+[2026-06-23 11:53:27] [INFO   ] [Context] step=35  input_tokens=4881 (real)  memory_steps=2
+[2026-06-23 11:53:31] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:53:31] [AGENT  ] [ExperimentRunner] Starting exp_022_laptop_ensemble_rf_gb_v1: ensemble_rf_gb_v1 (family=ensemble_stack)

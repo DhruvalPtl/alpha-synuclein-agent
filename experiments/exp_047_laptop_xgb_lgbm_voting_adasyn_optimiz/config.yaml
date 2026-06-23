@@ -1,0 +1,12 @@
+architecture_family: ensemble_stack
+exp_id: exp_047_laptop_xgb_lgbm_voting_adasyn_optimiz
+exp_name: xgb_lgbm_voting_adasyn_optimized
+hyperparams:
+  ensemble: Voting
+  estimators:
+  - XGB+ADASYN
+  - LGBM+ADASYN
+  strategy: soft
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:03:31'

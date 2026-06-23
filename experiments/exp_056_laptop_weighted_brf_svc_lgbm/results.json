@@ -1,0 +1,53 @@
+{
+  "exp_id": "exp_056_laptop_weighted_brf_svc_lgbm",
+  "machine_id": "laptop",
+  "architecture": "weighted_brf_svc_lgbm",
+  "architecture_family": "ensemble_stack",
+  "hyperparams": {
+    "model": "BRF_SVC_LGBM_Voting",
+    "resampling": "None (class_weights)",
+    "n_estimators": [
+      500,
+      200
+    ]
+  },
+  "timestamp": "2026-06-23T12:06:37",
+  "val_accuracy": 0.816667,
+  "val_f1_macro": 0.562795,
+  "val_f1_per_class": {
+    "0": 0.9438202247191011,
+    "1": 0.3333333333333333,
+    "2": 0.42857142857142855,
+    "3": 0.5454545454545454
+  },
+  "val_confusion_matrix": [
+    [
+      42,
+      2,
+      2,
+      1
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      3,
+      2
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 4.869,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

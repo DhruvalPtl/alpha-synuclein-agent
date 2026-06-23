@@ -1,0 +1,50 @@
+{
+  "exp_id": "exp_062_laptop_balanced_rf_selectkbest",
+  "machine_id": "laptop",
+  "architecture": "balanced_rf_selectkbest",
+  "architecture_family": "ensemble_stack",
+  "hyperparams": {
+    "n_estimators": 200,
+    "k": 10,
+    "strategy": "all"
+  },
+  "timestamp": "2026-06-23T12:07:53",
+  "val_accuracy": 0.616667,
+  "val_f1_macro": 0.426407,
+  "val_f1_per_class": {
+    "0": 0.7792207792207793,
+    "1": 0.36363636363636365,
+    "2": 0.18181818181818182,
+    "3": 0.38095238095238093
+  },
+  "val_confusion_matrix": [
+    [
+      30,
+      2,
+      4,
+      11
+    ],
+    [
+      0,
+      2,
+      0,
+      0
+    ],
+    [
+      0,
+      4,
+      1,
+      1
+    ],
+    [
+      0,
+      1,
+      0,
+      4
+    ]
+  ],
+  "train_time_seconds": 1.192,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

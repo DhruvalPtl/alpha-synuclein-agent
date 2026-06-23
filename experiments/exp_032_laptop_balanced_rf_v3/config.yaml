@@ -1,0 +1,10 @@
+architecture_family: classical_ml
+exp_id: exp_032_laptop_balanced_rf_v3
+exp_name: balanced_rf_v3
+hyperparams:
+  max_depth: 10
+  model: BalancedRandomForest
+  n_estimators: 500
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:58:08'

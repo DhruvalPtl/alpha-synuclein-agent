@@ -1,0 +1,11 @@
+architecture_family: modern_tabular
+exp_id: exp_020_laptop_modern_tabular_mlp
+exp_name: modern_tabular_mlp
+hyperparams:
+  layers:
+  - 128
+  - 64
+  model: MLP_Embedding_Sim
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:52:44'

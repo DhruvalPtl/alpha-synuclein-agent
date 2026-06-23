@@ -1,0 +1,71 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 12:10:24
+────────────────────────────────────────────────────────────
+[2026-06-23 12:10:24] [INFO   ] [ExperimentRunner] Files written to experiments\exp_070_laptop_refined_xgb_adasyn
+[2026-06-23 12:10:24] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:10:24] [INFO   ] [ExperimentRunner] Audit PASS for exp_070_laptop_refined_xgb_adasyn
+[2026-06-23 12:10:24] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_070_laptop_refined_xgb_adasyn\train_eval.py
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_070_laptop_refined_xgb_adasyn
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Experiment   = exp_070_laptop_refined_xgb_adasyn
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_070_laptop_refined_xgb_adasyn\model.py ...
+[2026-06-23 12:10:26] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 12:10:30] [INFO   ]   [harness] [harness] build_and_train() returned in 4.12s
+[2026-06-23 12:10:30] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 12:10:30] [INFO   ]   [harness] [harness] val_accuracy  = 0.8833
+[2026-06-23 12:10:30] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6849
+[2026-06-23 12:10:30] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9574468085106383, '1': 0.5, '2': 0.6153846153846154, '3': 0.6666666666666666}
+[2026-06-23 12:10:30] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_070_laptop_refined_xgb_adasyn\results.json
+[2026-06-23 12:10:30] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6849
+[2026-06-23 12:10:31] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=70  best_f1=0.6849
+[2026-06-23 12:10:31] [AGENT  ] [ExperimentRunner] exp_070_laptop_refined_xgb_adasyn COMPLETE | val_f1_macro=0.6849 | status=success | time=6.8s
+[2026-06-23 12:10:31] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_070_laptop_refined_xgb_adasyn
+  Arch       : refined_xgb_adasyn
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6849
+  val_accuracy : 0.8833
+  train_time   : 4.1s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9574  |################### |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.6154  |############        |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 12:10:31] [INFO   ] [Context] step=99  input_tokens=9709 (real)  memory_steps=8
+[2026-06-23 12:10:31] [AGENT  ] [Orchestrator] Compressing memory after 70 experiments.
+[2026-06-23 12:10:32] [AGENT  ] [Orchestrator] Compression summary (57 words):
+Architectures evaluated include optimized LightGBM (neural network), XGBoost (classical ML), and a weighted ensemble. Performance scores (val_f1_macro) are as follows: optimized_lgbm_reg (0.6063), xgb_adasyn_experiment (0.6849), weighted_ensemble_v2 (0.5991), xgb_fs_adasyn (0.6711), and refined_xgb_adasyn (0.6849). 
+
+Key insight: ADASYN-augmented XGBoost models consistently outperform LightGBM and ensemble methods in handling class imbalance. 
+
+The current best-performing model is exp_035_laptop_voting_smote_adasyn_xgb, achieving a val_f1_macro of 0.6849.
+[2026-06-23 12:10:32] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 12:10:36] [AGENT  ] [ArxivTool] Searching: 'ensemble stacking classification imbalanced data'  (max=3)
+[2026-06-23 12:10:37] [INFO   ] [ArxivTool] Retrieved 3 papers.
+[2026-06-23 12:10:37] [INFO   ] [Throttle:gemini] sleeping 5.56s (target 5 RPM)
+[2026-06-23 12:10:44] [AGENT  ] [ArxivTool] ACTIONABLE: Classification of Imbalanced Credit scoring data sets Based 
+[2026-06-23 12:10:44] [INFO   ] [Throttle:gemini] sleeping 10.97s (target 5 RPM)
+[2026-06-23 12:10:57] [AGENT  ] [ArxivTool] ACTIONABLE: Self-paced Ensemble for Highly Imbalanced Massive Data Class
+[2026-06-23 12:10:57] [INFO   ] [Throttle:gemini] sleeping 10.27s (target 5 RPM)
+[2026-06-23 12:11:08] [INFO   ] [ArxivTool] SKIP: Data Encoding for Byzantine-Resilient Distributed Optimizati
+[2026-06-23 12:11:08] [AGENT  ] [ArxivTool] Report ready: 2 actionable papers.
+[2026-06-23 12:11:08] [INFO   ] [Context] step=100  input_tokens=4470 (real)  memory_steps=2
+[2026-06-23 12:11:12] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:11:12] [AGENT  ] [ExperimentRunner] Starting exp_071_laptop_stacked_xgb_rf_smote: stacked_xgb_rf_smote (family=ensemble_stack)

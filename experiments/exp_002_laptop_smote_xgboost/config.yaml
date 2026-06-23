@@ -1,0 +1,9 @@
+architecture_family: classical_ml
+exp_id: exp_002_laptop_smote_xgboost
+exp_name: smote_xgboost
+hyperparams:
+  smote: default
+  xgb_n_estimators: 100
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:42:40'

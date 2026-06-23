@@ -1,0 +1,10 @@
+architecture_family: deep_residual
+exp_id: exp_014_laptop_resnet_tabular
+exp_name: resnet_tabular
+hyperparams:
+  epochs: 150
+  layers: ResidualBlock
+  model: ResNetTabular
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:48:24'

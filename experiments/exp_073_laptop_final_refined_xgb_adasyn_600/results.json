@@ -1,0 +1,50 @@
+{
+  "exp_id": "exp_073_laptop_final_refined_xgb_adasyn_600",
+  "machine_id": "laptop",
+  "architecture": "final_refined_xgb_adasyn_600",
+  "architecture_family": "classical_ml",
+  "hyperparams": {
+    "model": "XGBoost",
+    "n_estimators": 600,
+    "resampling": "ADASYN"
+  },
+  "timestamp": "2026-06-23T12:11:40",
+  "val_accuracy": 0.9,
+  "val_f1_macro": 0.700439,
+  "val_f1_per_class": {
+    "0": 0.968421052631579,
+    "1": 0.5,
+    "2": 0.6666666666666666,
+    "3": 0.6666666666666666
+  },
+  "val_confusion_matrix": [
+    [
+      46,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      4,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 4.779,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

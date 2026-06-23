@@ -1,0 +1,8 @@
+architecture_family: modern_tabular
+exp_id: exp_076_laptop_modern_tabular_xgb_2
+exp_name: modern_tabular_xgb_2
+hyperparams:
+  iter: 2
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:12:07'

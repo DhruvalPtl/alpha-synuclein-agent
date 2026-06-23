@@ -1,0 +1,9 @@
+architecture_family: classical_ml
+exp_id: exp_025_laptop_smote_rf_v1
+exp_name: smote_rf_v1
+hyperparams:
+  model: RandomForest
+  sampling: SMOTE
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:54:38'

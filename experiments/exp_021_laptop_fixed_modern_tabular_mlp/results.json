@@ -1,0 +1,52 @@
+{
+  "exp_id": "exp_021_laptop_fixed_modern_tabular_mlp",
+  "machine_id": "laptop",
+  "architecture": "fixed_modern_tabular_mlp",
+  "architecture_family": "neural_network",
+  "hyperparams": {
+    "model": "MLP_with_weights",
+    "layers": [
+      256,
+      64
+    ]
+  },
+  "timestamp": "2026-06-23T11:53:09",
+  "val_accuracy": 0.6,
+  "val_f1_macro": 0.376758,
+  "val_f1_per_class": {
+    "0": 0.7848101265822784,
+    "1": 0.2222222222222222,
+    "2": 0.25,
+    "3": 0.25
+  },
+  "val_confusion_matrix": [
+    [
+      31,
+      2,
+      6,
+      8
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      3,
+      2,
+      1
+    ],
+    [
+      1,
+      1,
+      1,
+      2
+    ]
+  ],
+  "train_time_seconds": 14.878,
+  "model_params_count": 0,
+  "status": "success",
+  "error_message": null
+}

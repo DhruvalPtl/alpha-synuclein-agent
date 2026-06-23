@@ -1,0 +1,50 @@
+{
+  "exp_id": "exp_023_laptop_tuned_xgboost_imbalanced",
+  "machine_id": "laptop",
+  "architecture": "tuned_xgboost_imbalanced",
+  "architecture_family": "classical_ml",
+  "hyperparams": {
+    "model": "XGBClassifier",
+    "n_estimators": 500,
+    "learning_rate": 0.05
+  },
+  "timestamp": "2026-06-23T11:54:08",
+  "val_accuracy": 0.833333,
+  "val_f1_macro": 0.584982,
+  "val_f1_per_class": {
+    "0": 0.945054945054945,
+    "1": 0.3333333333333333,
+    "2": 0.46153846153846156,
+    "3": 0.6
+  },
+  "val_confusion_matrix": [
+    [
+      43,
+      2,
+      1,
+      1
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      3,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 14.561,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

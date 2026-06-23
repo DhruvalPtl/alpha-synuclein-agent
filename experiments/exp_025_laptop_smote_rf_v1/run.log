@@ -1,0 +1,71 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:54:38
+────────────────────────────────────────────────────────────
+[2026-06-23 11:54:38] [INFO   ] [ExperimentRunner] Files written to experiments\exp_025_laptop_smote_rf_v1
+[2026-06-23 11:54:38] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:54:38] [INFO   ] [ExperimentRunner] Audit PASS for exp_025_laptop_smote_rf_v1
+[2026-06-23 11:54:38] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_025_laptop_smote_rf_v1\train_eval.py
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_025_laptop_smote_rf_v1
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Experiment   = exp_025_laptop_smote_rf_v1
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_025_laptop_smote_rf_v1\model.py ...
+[2026-06-23 11:54:41] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:54:47] [INFO   ]   [harness] [harness] build_and_train() returned in 5.85s
+[2026-06-23 11:54:47] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:54:47] [INFO   ]   [harness] [harness] val_accuracy  = 0.8167
+[2026-06-23 11:54:47] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5808
+[2026-06-23 11:54:47] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9230769230769231, '1': 0.4, '2': 0.5, '3': 0.5}
+[2026-06-23 11:54:47] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_025_laptop_smote_rf_v1\results.json
+[2026-06-23 11:54:47] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5808
+[2026-06-23 11:54:47] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=25  best_f1=0.6810
+[2026-06-23 11:54:47] [AGENT  ] [ExperimentRunner] exp_025_laptop_smote_rf_v1 COMPLETE | val_f1_macro=0.5808 | status=success | time=9.4s
+[2026-06-23 11:54:48] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_025_laptop_smote_rf_v1
+  Arch       : smote_rf_v1
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.5808
+  val_accuracy : 0.8167
+  train_time   : 5.9s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9231  |##################  |
+    1 (Low   ): 0.4000  |########            |
+    2 (Medium): 0.5000  |##########          |
+    3 (High  ): 0.5000  |##########          |
+==============================================================
+[2026-06-23 11:54:48] [INFO   ] [Context] step=39  input_tokens=9366 (real)  memory_steps=6
+[2026-06-23 11:54:48] [AGENT  ] [Orchestrator] Compressing memory after 25 experiments.
+[2026-06-23 11:54:49] [AGENT  ] [Orchestrator] Compression summary (61 words):
+Architectures tested include neural networks (MLP), attention-based models, linear models, and classical machine learning (Random Forest). Val_f1_macro scores were as follows: `fixed_modern_tabular_mlp` (0.3768), `smote_rf_v1` (0.5808), while `logistic_balanced`, `attention_mlp_v1`, and `modern_tabular_mlp` failed (0.0000). 
+
+Insight: Feature engineering and data balancing techniques like SMOTE significantly outperform raw deep learning architectures on this dataset.
+
+The current best performer is `exp_002_laptop_smote_xgboost` with a val_f1_macro of 0.6810.
+[2026-06-23 11:54:49] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 11:54:54] [AGENT  ] [ArxivTool] Searching: 'graph neural network for tabular classification'  (max=3)
+[2026-06-23 11:54:57] [INFO   ] [ArxivTool] Retrieved 3 papers.
+[2026-06-23 11:54:57] [INFO   ] [Throttle:gemini] sleeping 2.52s (target 5 RPM)
+[2026-06-23 11:55:01] [AGENT  ] [ArxivTool] ACTIONABLE: A Tutorial about Random Neural Networks in Supervised Learni
+[2026-06-23 11:55:01] [INFO   ] [Throttle:gemini] sleeping 10.64s (target 5 RPM)
+[2026-06-23 11:55:13] [INFO   ] [ArxivTool] SKIP: Learning Universal Graph Neural Network Embeddings With Aid 
+[2026-06-23 11:55:13] [INFO   ] [Throttle:gemini] sleeping 11.06s (target 5 RPM)
+[2026-06-23 11:55:25] [AGENT  ] [ArxivTool] ACTIONABLE: DANets: Deep Abstract Networks for Tabular Data Classificati
+[2026-06-23 11:55:25] [AGENT  ] [ArxivTool] Report ready: 2 actionable papers.
+[2026-06-23 11:55:25] [INFO   ] [Context] step=40  input_tokens=4937 (real)  memory_steps=2
+[2026-06-23 11:55:28] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:55:28] [AGENT  ] [ExperimentRunner] Starting exp_026_laptop_gb_smote_v1: gb_smote_v1 (family=classical_ml)

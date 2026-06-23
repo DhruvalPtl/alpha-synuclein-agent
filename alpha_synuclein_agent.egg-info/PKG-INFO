@@ -1,0 +1,5 @@
+Metadata-Version: 2.4
+Name: alpha-synuclein-agent
+Version: 0.1.0
+Summary: Autonomous ML research agent for alpha-synuclein peptide classification
+Requires-Python: >=3.10

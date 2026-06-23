@@ -1,0 +1,9 @@
+architecture_family: ensemble_stack
+exp_id: exp_071_laptop_stacked_xgb_rf_smote
+exp_name: stacked_xgb_rf_smote
+hyperparams:
+  model: Stacking(XGB, RF)
+  resampling: SMOTE
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:11:12'

@@ -1,0 +1,53 @@
+{
+  "exp_id": "exp_003_laptop_stacking_clf_ensemble",
+  "machine_id": "laptop",
+  "architecture": "stacking_clf_ensemble",
+  "architecture_family": "ensemble_stack",
+  "hyperparams": {
+    "estimators": [
+      "rf",
+      "gb",
+      "svc"
+    ],
+    "final_estimator": "logistic_regression"
+  },
+  "timestamp": "2026-06-23T11:43:44",
+  "val_accuracy": 0.866667,
+  "val_f1_macro": 0.548886,
+  "val_f1_per_class": {
+    "0": 0.9574468085106383,
+    "1": 0.0,
+    "2": 0.5714285714285714,
+    "3": 0.6666666666666666
+  },
+  "val_confusion_matrix": [
+    [
+      45,
+      0,
+      1,
+      1
+    ],
+    [
+      1,
+      0,
+      1,
+      0
+    ],
+    [
+      1,
+      1,
+      4,
+      0
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 7.778,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

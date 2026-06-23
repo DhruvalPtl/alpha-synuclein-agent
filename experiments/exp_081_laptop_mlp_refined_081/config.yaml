@@ -1,0 +1,11 @@
+architecture_family: neural_network
+exp_id: exp_081_laptop_mlp_refined_081
+exp_name: mlp_refined_081
+hyperparams:
+  hidden:
+  - 256
+  - 128
+  max_iter: 800
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:12:43'

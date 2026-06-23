@@ -1,0 +1,12 @@
+architecture_family: ensemble_stack
+exp_id: exp_056_laptop_weighted_brf_svc_lgbm
+exp_name: weighted_brf_svc_lgbm
+hyperparams:
+  model: BRF_SVC_LGBM_Voting
+  n_estimators:
+  - 500
+  - 200
+  resampling: None (class_weights)
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:06:37'

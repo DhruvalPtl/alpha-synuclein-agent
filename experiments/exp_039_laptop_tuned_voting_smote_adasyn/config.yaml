@@ -1,0 +1,14 @@
+architecture_family: ensemble_stack
+exp_id: exp_039_laptop_tuned_voting_smote_adasyn
+exp_name: tuned_voting_smote_adasyn
+hyperparams:
+  ensemble: Voting
+  model: XGBoost
+  reg_alpha: 0.1
+  reg_lambda: 1.0
+  samplers:
+  - SMOTE
+  - ADASYN
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:01:14'

@@ -1,0 +1,67 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:59:26
+────────────────────────────────────────────────────────────
+[2026-06-23 11:59:26] [INFO   ] [ExperimentRunner] Files written to experiments\exp_035_laptop_voting_smote_adasyn_xgb
+[2026-06-23 11:59:26] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:59:26] [INFO   ] [ExperimentRunner] Audit PASS for exp_035_laptop_voting_smote_adasyn_xgb
+[2026-06-23 11:59:26] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_035_laptop_voting_smote_adasyn_xgb\train_eval.py
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_035_laptop_voting_smote_adasyn_xgb
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Experiment   = exp_035_laptop_voting_smote_adasyn_xgb
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_035_laptop_voting_smote_adasyn_xgb\model.py ...
+[2026-06-23 11:59:29] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:59:51] [INFO   ]   [harness] [harness] build_and_train() returned in 21.17s
+[2026-06-23 11:59:51] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:59:51] [INFO   ]   [harness] [harness] val_accuracy  = 0.8833
+[2026-06-23 11:59:51] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6849
+[2026-06-23 11:59:51] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9574468085106383, '1': 0.5, '2': 0.6153846153846154, '3': 0.6666666666666666}
+[2026-06-23 11:59:51] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_035_laptop_voting_smote_adasyn_xgb\results.json
+[2026-06-23 11:59:51] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6849
+[2026-06-23 11:59:51] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=35  best_f1=0.6849
+[2026-06-23 11:59:51] [AGENT  ] [ExperimentRunner] exp_035_laptop_voting_smote_adasyn_xgb COMPLETE | val_f1_macro=0.6849 | status=success | time=24.6s
+[2026-06-23 11:59:51] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_035_laptop_voting_smote_adasyn_xgb
+  Arch       : voting_smote_adasyn_xgb
+  Family     : ensemble_stack
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6849
+  val_accuracy : 0.8833
+  train_time   : 21.2s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9574  |################### |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.6154  |############        |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 11:59:51] [INFO   ] [Context] step=54  input_tokens=11068 (real)  memory_steps=8
+[2026-06-23 11:59:51] [AGENT  ] [Orchestrator] Compressing memory after 35 experiments.
+[2026-06-23 11:59:53] [AGENT  ] [Orchestrator] Compression summary (66 words):
+Experiments explored deep learning (DANet-inspired) and classical approaches, including Random Forest, XGBoost with various resampling techniques (SMOTE, Tomek Links, ADASYN), and ensemble stacking.
+
+- DANet-inspired: 0.0000
+- Balanced RF: 0.5056
+- SMOTE-XGB: 0.6310
+- SMOTETomek-XGB: 0.6430
+- Voting Ensemble (SMOTE+ADASYN+XGB): 0.6849
+
+Key Insight: Gradient-boosted trees combined with ensemble-based oversampling techniques significantly outperform basic neural network architectures and standard classifiers on this dataset.
+
+Current Best: voting_smote_adasyn_xgb (f1_macro=0.6849).
+[2026-06-23 11:59:53] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 11:59:55] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:59:56] [AGENT  ] [ExperimentRunner] Starting exp_036_laptop_stack_lgbm_brf: stack_lgbm_brf (family=ensemble_stack)

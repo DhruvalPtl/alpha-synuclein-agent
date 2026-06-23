@@ -1,0 +1,55 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:45:32
+────────────────────────────────────────────────────────────
+[2026-06-23 11:45:32] [INFO   ] [ExperimentRunner] Files written to experiments\exp_008_laptop_stacking_refined
+[2026-06-23 11:45:32] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:45:32] [INFO   ] [ExperimentRunner] Audit PASS for exp_008_laptop_stacking_refined
+[2026-06-23 11:45:32] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_008_laptop_stacking_refined\train_eval.py
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_008_laptop_stacking_refined
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Experiment   = exp_008_laptop_stacking_refined
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_008_laptop_stacking_refined\model.py ...
+[2026-06-23 11:45:35] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:45:41] [INFO   ]   [harness] d:\3rd sem M.tech\agent_workspace\.venv\Lib\site-packages\sklearn\neural_network\_multilayer_perceptron.py:785: ConvergenceWarning: Stochastic Optimizer: Maximum iterations (500) reached and the optimization hasn't converged yet.
+[2026-06-23 11:45:41] [INFO   ]   [harness]   warnings.warn(
+[2026-06-23 11:45:51] [INFO   ]   [harness] [harness] build_and_train() returned in 16.25s
+[2026-06-23 11:45:51] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:45:51] [INFO   ]   [harness] [harness] val_accuracy  = 0.8833
+[2026-06-23 11:45:51] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5200
+[2026-06-23 11:45:51] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9690721649484536, '1': 0.0, '2': 0.4444444444444444, '3': 0.6666666666666666}
+[2026-06-23 11:45:51] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_008_laptop_stacking_refined\results.json
+[2026-06-23 11:45:51] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5200
+[2026-06-23 11:45:52] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=8  best_f1=0.6810
+[2026-06-23 11:45:52] [AGENT  ] [ExperimentRunner] exp_008_laptop_stacking_refined COMPLETE | val_f1_macro=0.5200 | status=success | time=20.4s
+[2026-06-23 11:45:52] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_008_laptop_stacking_refined
+  Arch       : stacking_refined
+  Family     : ensemble_stack
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.5200
+  val_accuracy : 0.8833
+  train_time   : 16.2s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9691  |################### |
+    1 (Low   ): 0.0000  |                    |
+    2 (Medium): 0.4444  |########            |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 11:45:52] [INFO   ] [Context] step=15  input_tokens=7943 (real)  memory_steps=9
+[2026-06-23 11:45:57] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:45:57] [AGENT  ] [ExperimentRunner] Starting exp_009_laptop_smote_lgbm: smote_lgbm (family=classical_ml)

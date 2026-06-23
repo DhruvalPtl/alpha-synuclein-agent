@@ -1,0 +1,50 @@
+{
+  "exp_id": "exp_063_laptop_lgbm_smote_optimized",
+  "machine_id": "laptop",
+  "architecture": "lgbm_smote_optimized",
+  "architecture_family": "ensemble_stack",
+  "hyperparams": {
+    "n_estimators": 300,
+    "learning_rate": 0.05,
+    "num_leaves": 31
+  },
+  "timestamp": "2026-06-23T12:08:01",
+  "val_accuracy": 0.883333,
+  "val_f1_macro": 0.670782,
+  "val_f1_per_class": {
+    "0": 0.967741935483871,
+    "1": 0.5,
+    "2": 0.6153846153846154,
+    "3": 0.6
+  },
+  "val_confusion_matrix": [
+    [
+      45,
+      1,
+      0,
+      1
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      0,
+      4,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 4.658,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

@@ -1,0 +1,10 @@
+architecture_family: ensemble_stack
+exp_id: exp_058_laptop_ensemble_v3_rf_xgb_lgbm_smote_
+exp_name: ensemble_v3_rf_xgb_lgbm_smote_adasyn
+hyperparams:
+  model: RF_XGB_LGBM_Voting
+  n_estimators: 400
+  resampling: SMOTE+ADASYN
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:07:03'

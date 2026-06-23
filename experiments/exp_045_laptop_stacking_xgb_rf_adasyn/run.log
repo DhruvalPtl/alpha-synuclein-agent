@@ -1,0 +1,62 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 12:02:56
+────────────────────────────────────────────────────────────
+[2026-06-23 12:02:56] [INFO   ] [ExperimentRunner] Files written to experiments\exp_045_laptop_stacking_xgb_rf_adasyn
+[2026-06-23 12:02:56] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:02:56] [INFO   ] [ExperimentRunner] Audit PASS for exp_045_laptop_stacking_xgb_rf_adasyn
+[2026-06-23 12:02:56] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_045_laptop_stacking_xgb_rf_adasyn\train_eval.py
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_045_laptop_stacking_xgb_rf_adasyn
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Experiment   = exp_045_laptop_stacking_xgb_rf_adasyn
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_045_laptop_stacking_xgb_rf_adasyn\model.py ...
+[2026-06-23 12:02:59] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 12:03:09] [INFO   ]   [harness] [harness] build_and_train() returned in 9.23s
+[2026-06-23 12:03:09] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 12:03:09] [INFO   ]   [harness] [harness] val_accuracy  = 0.9000
+[2026-06-23 12:03:09] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5653
+[2026-06-23 12:03:09] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9791666666666666, '1': 0.0, '2': 0.6153846153846154, '3': 0.6666666666666666}
+[2026-06-23 12:03:09] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_045_laptop_stacking_xgb_rf_adasyn\results.json
+[2026-06-23 12:03:09] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5653
+[2026-06-23 12:03:09] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=45  best_f1=0.6849
+[2026-06-23 12:03:09] [AGENT  ] [ExperimentRunner] exp_045_laptop_stacking_xgb_rf_adasyn COMPLETE | val_f1_macro=0.5653 | status=success | time=12.6s
+[2026-06-23 12:03:09] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_045_laptop_stacking_xgb_rf_adasyn
+  Arch       : stacking_xgb_rf_adasyn
+  Family     : ensemble_stack
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.5653
+  val_accuracy : 0.9000
+  train_time   : 9.2s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9792  |################### |
+    1 (Low   ): 0.0000  |                    |
+    2 (Medium): 0.6154  |############        |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 12:03:09] [INFO   ] [Context] step=66  input_tokens=9829 (real)  memory_steps=8
+[2026-06-23 12:03:09] [AGENT  ] [Orchestrator] Compressing memory after 45 experiments.
+[2026-06-23 12:03:11] [AGENT  ] [Orchestrator] Compression summary (68 words):
+Architectures evaluated included various ensemble stacks combining XGBoost, Balanced Random Forest (BRF), and LightGBM with resampling techniques (ADASYN/SMOTE). Val_f1_macro scores were: xgb_brf_voting_adasyn (0.6624), xgb_lgbm_voting_adasyn_smote (0.6257), balanced_rf_smote_refined (0.5808), brf_xgb_weighted_ensemble (0.5768), and stacking_xgb_rf_adasyn (0.5653). 
+
+Key insight: Combining ADASYN with voting ensembles of tree-based models provides the most robust performance, though class 1 remains a persistent bottleneck for all tested configurations. 
+
+The current best is exp_035_laptop_voting_smote_adasyn_xgb with a val_f1_macro of 0.6849.
+[2026-06-23 12:03:11] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 12:03:12] [INFO   ] [Context] step=67  input_tokens=4512 (real)  memory_steps=2
+[2026-06-23 12:03:15] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:03:15] [AGENT  ] [ExperimentRunner] Starting exp_046_laptop_brf_deep_tuned: brf_deep_tuned (family=ensemble_stack)

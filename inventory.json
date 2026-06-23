@@ -1,0 +1,633 @@
+{
+  "agent/__init__.py": {
+    "classes": [],
+    "functions": [],
+    "imports": [],
+    "last_modified": "Thu Jun 18 15:59:10 2026 +0530",
+    "internal_imports": [],
+    "imported_by": []
+  },
+  "agent/core/__init__.py": {
+    "classes": [],
+    "functions": [],
+    "imports": [
+      ".tee_logger",
+      ".llm_manager"
+    ],
+    "last_modified": "Fri Jun 19 11:48:12 2026 +0530",
+    "internal_imports": [
+      "agent/core/llm_manager.py",
+      "agent/core/tee_logger.py"
+    ],
+    "imported_by": []
+  },
+  "agent/core/concise_logger.py": {
+    "classes": [
+      {
+        "name": "ConciseStepReporter",
+        "methods": [
+          "__init__(self, logger, run_start, refresh_hz)",
+          "step_callback(self, memory_step)",
+          "update_exp(self, exp_name)",
+          "stop(self)",
+          "_refresh_loop(self)",
+          "_extract_exp_info(self, memory_step)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "typing",
+      "json",
+      "threading",
+      "sys",
+      "time"
+    ],
+    "last_modified": "Fri Jun 19 15:25:44 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/core/orchestrator.py"
+    ]
+  },
+  "agent/core/env_config.py": {
+    "classes": [],
+    "functions": [
+      "find_project_root(start)",
+      "_is_root(path)",
+      "setup_environment(verbose)",
+      "_detect_cloud()",
+      "_print_cloud_info()",
+      "get_paths(root)"
+    ],
+    "imports": [
+      "subprocess",
+      "typing",
+      "urllib.request",
+      "sys",
+      "pathlib",
+      "platform",
+      "os"
+    ],
+    "last_modified": "Fri Jun 19 12:36:20 2026 +0530",
+    "internal_imports": [],
+    "imported_by": []
+  },
+  "agent/core/llm_manager.py": {
+    "classes": [
+      {
+        "name": "LLMManager",
+        "methods": [
+          "__init__(self, model_name, env_path)",
+          "get_model(self)",
+          "test_connection(self)",
+          "switch_model(self, model_name)",
+          "auto_fallback_chain(self, chain, test_each)",
+          "_initialize_model(self, model_name)",
+          "_get_api_key(provider)",
+          "_stamp_leaderboard(model_name)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "typing",
+      "datetime",
+      "agent.core.tee_logger",
+      "json",
+      "smolagents",
+      "pathlib",
+      "dotenv",
+      "time",
+      "os"
+    ],
+    "last_modified": "Thu Jun 18 16:46:16 2026 +0530",
+    "internal_imports": [
+      "agent/core/tee_logger.py"
+    ],
+    "imported_by": [
+      "agent/core/__init__.py",
+      "agent/core/orchestrator.py"
+    ]
+  },
+  "agent/core/orchestrator.py": {
+    "classes": [
+      {
+        "name": "AgentOrchestrator",
+        "methods": [
+          "__init__(self, model_name, use_short_prompt, max_steps, verbosity, max_idle_seconds, max_total_seconds)",
+          "run(self, max_experiments, max_idle_seconds, max_total_seconds)",
+          "stop(self)",
+          "switch_model(self, model_name)",
+          "status(self)",
+          "_elapsed(self)",
+          "_elapsed_tuple(self)",
+          "_save_state(self, status)",
+          "_print_run_summary(self, stop_reason, fin_error)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "agent.tools.experiment_runner",
+      "agent.tools.leaderboard_tool",
+      "datetime",
+      "typing",
+      "agent.core.llm_manager",
+      "agent.core.watchdog",
+      "agent.prompts.system_prompt",
+      "agent.core.tee_logger",
+      "agent.tools.arxiv_tool",
+      "json",
+      "agent.core.session_manager",
+      "agent.core.concise_logger",
+      "smolagents",
+      "threading",
+      "pathlib",
+      "time",
+      "agent.tools.audit_tool"
+    ],
+    "last_modified": "Fri Jun 19 15:25:44 2026 +0530",
+    "internal_imports": [
+      "agent/core/concise_logger.py",
+      "agent/core/llm_manager.py",
+      "agent/core/session_manager.py",
+      "agent/core/tee_logger.py",
+      "agent/core/watchdog.py",
+      "agent/prompts/system_prompt.py",
+      "agent/tools/arxiv_tool.py",
+      "agent/tools/audit_tool.py",
+      "agent/tools/experiment_runner.py",
+      "agent/tools/leaderboard_tool.py"
+    ],
+    "imported_by": []
+  },
+  "agent/core/session_manager.py": {
+    "classes": [
+      {
+        "name": "SessionManager",
+        "methods": [
+          "__init__(self, model_name, logger, heartbeat_interval)",
+          "start(self)",
+          "tick(self, current_exp, step, status)",
+          "end(self, status, total_experiments, error_message)",
+          "_attach_session_log(self)",
+          "_heartbeat_loop(self)",
+          "_write_heartbeat(self)",
+          "_write_json(path, data)"
+        ]
+      }
+    ],
+    "functions": [
+      "_machine_id()"
+    ],
+    "imports": [
+      "datetime",
+      "typing",
+      "types",
+      "json",
+      "threading",
+      "pathlib",
+      "time",
+      "platform",
+      "os"
+    ],
+    "last_modified": "Fri Jun 19 13:56:06 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/core/orchestrator.py"
+    ]
+  },
+  "agent/core/tee_logger.py": {
+    "classes": [
+      {
+        "name": "TeeLogger",
+        "methods": [
+          "__new__(cls, master_log_dir)",
+          "__init__(self, master_log_dir)",
+          "set_experiment_log(self, path)",
+          "info(self, message)",
+          "warning(self, message)",
+          "error(self, message)",
+          "agent(self, message)",
+          "_now(self)",
+          "_format_plain(self, level, message)",
+          "_format_colour(self, level, message)",
+          "_emit(self, level, message)",
+          "_append_to_file(path, text)",
+          "redirect_print(self)",
+          "restore_print(self)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "datetime",
+      "typing",
+      "threading",
+      "sys",
+      "pathlib",
+      "os"
+    ],
+    "last_modified": "Thu Jun 18 16:39:02 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/core/__init__.py",
+      "agent/core/llm_manager.py",
+      "agent/core/orchestrator.py",
+      "agent/tools/arxiv_tool.py",
+      "agent/tools/audit_tool.py",
+      "agent/tools/experiment_runner.py",
+      "agent/tools/leaderboard_tool.py"
+    ]
+  },
+  "agent/core/watchdog.py": {
+    "classes": [
+      {
+        "name": "RunWatchdog",
+        "methods": [
+          "__init__(self, stop_event, heartbeat_path, max_idle_seconds, max_total_seconds, logger, poll_interval)",
+          "start(self)",
+          "stop(self)",
+          "run(self)",
+          "_log(self, msg)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "typing",
+      "json",
+      "threading",
+      "pathlib",
+      "time"
+    ],
+    "last_modified": "Fri Jun 19 15:25:44 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/core/orchestrator.py"
+    ]
+  },
+  "agent/data/__init__.py": {
+    "classes": [],
+    "functions": [],
+    "imports": [
+      ".loader",
+      ".",
+      ".pipeline"
+    ],
+    "last_modified": "Thu Jun 18 16:39:02 2026 +0530",
+    "internal_imports": [
+      "agent/data/__init__.py",
+      "agent/data/loader.py",
+      "agent/data/pipeline.py"
+    ],
+    "imported_by": [
+      "agent/data/__init__.py",
+      "agent/data/pipeline.py"
+    ]
+  },
+  "agent/data/features.py": {
+    "classes": [],
+    "functions": [
+      "_clean(sequence)",
+      "amino_acid_composition(sequence)",
+      "physicochemical_features(sequence)",
+      "kmer_frequencies(sequence, k)",
+      "encode_concentration(value, log_min, log_max)",
+      "_charge_at_ph(counts, ph)",
+      "_isoelectric_point(counts)",
+      "_instability_index(seq)"
+    ],
+    "imports": [
+      "numpy",
+      "itertools",
+      "typing",
+      "math"
+    ],
+    "last_modified": "Thu Jun 18 15:59:10 2026 +0530",
+    "internal_imports": [],
+    "imported_by": []
+  },
+  "agent/data/loader.py": {
+    "classes": [],
+    "functions": [
+      "load_raw_csv(path)"
+    ],
+    "imports": [
+      "typing",
+      "pandas",
+      "io",
+      "pathlib",
+      "re"
+    ],
+    "last_modified": "Thu Jun 18 16:39:02 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/data/__init__.py",
+      "agent/data/pipeline.py"
+    ]
+  },
+  "agent/data/pipeline.py": {
+    "classes": [
+      {
+        "name": "DataPipeline",
+        "methods": [
+          "__init__(self, splits_dir, random_state)",
+          "load_and_expand(self, csv_path)",
+          "build_features(self, df)",
+          "stratified_split(self, X, y, train, val, test)",
+          "seal_test_set(self, test_path)",
+          "verify_wall(self, test_path)",
+          "save_splits(self)",
+          "load_splits(self)",
+          "reduce_features(self, X_train, X_val, X_test, y_train, k_best, use_pca, pca_variance)",
+          "get_class_weights(self, y_train)",
+          "apply_smote(self, X_train, y_train, random_state, k_neighbors)",
+          "_sha256(path)",
+          "_find_sequence_column(df)",
+          "_parse_concentration(raw)",
+          "_resolve_labels(series)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "pickle",
+      "typing",
+      "sklearn.decomposition",
+      "math",
+      "hashlib",
+      "pandas",
+      "sklearn.model_selection",
+      "pathlib",
+      "agent.data",
+      "sklearn.feature_selection",
+      "numpy",
+      "agent.data.loader",
+      "sklearn.preprocessing",
+      "sklearn.utils.class_weight",
+      "imblearn.over_sampling",
+      "re",
+      "os"
+    ],
+    "last_modified": "Fri Jun 19 11:48:12 2026 +0530",
+    "internal_imports": [
+      "agent/data/__init__.py",
+      "agent/data/loader.py"
+    ],
+    "imported_by": [
+      "agent/data/__init__.py",
+      "agent/tools/dev_reset.py"
+    ]
+  },
+  "agent/prompts/__init__.py": {
+    "classes": [],
+    "functions": [],
+    "imports": [
+      ".system_prompt"
+    ],
+    "last_modified": "Fri Jun 19 11:48:12 2026 +0530",
+    "internal_imports": [
+      "agent/prompts/system_prompt.py"
+    ],
+    "imported_by": []
+  },
+  "agent/prompts/system_prompt.py": {
+    "classes": [],
+    "functions": [],
+    "imports": [],
+    "last_modified": "Fri Jun 19 14:04:10 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/core/orchestrator.py",
+      "agent/prompts/__init__.py"
+    ]
+  },
+  "agent/tools/__init__.py": {
+    "classes": [],
+    "functions": [],
+    "imports": [
+      ".experiment_runner",
+      ".leaderboard_tool",
+      ".audit_tool",
+      ".arxiv_tool"
+    ],
+    "last_modified": "Fri Jun 19 11:48:12 2026 +0530",
+    "internal_imports": [
+      "agent/tools/arxiv_tool.py",
+      "agent/tools/audit_tool.py",
+      "agent/tools/experiment_runner.py",
+      "agent/tools/leaderboard_tool.py"
+    ],
+    "imported_by": []
+  },
+  "agent/tools/arxiv_tool.py": {
+    "classes": [
+      {
+        "name": "ArxivTool",
+        "methods": [
+          "__init__(self, llm_model)",
+          "forward(self, query, max_results, llm_filter)",
+          "_llm_filter(self, abstract)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "typing",
+      "arxiv",
+      "agent.core.tee_logger",
+      "smolagents",
+      "time"
+    ],
+    "last_modified": "Fri Jun 19 11:48:12 2026 +0530",
+    "internal_imports": [
+      "agent/core/tee_logger.py"
+    ],
+    "imported_by": [
+      "agent/core/orchestrator.py",
+      "agent/tools/__init__.py"
+    ]
+  },
+  "agent/tools/audit_tool.py": {
+    "classes": [
+      {
+        "name": "AuditTool",
+        "methods": [
+          "__init__(self)",
+          "forward(self, code_block)",
+          "audit_directory(self, directory)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "typing",
+      "agent.core.tee_logger",
+      "smolagents",
+      "pathlib",
+      "re"
+    ],
+    "last_modified": "Fri Jun 19 13:48:18 2026 +0530",
+    "internal_imports": [
+      "agent/core/tee_logger.py"
+    ],
+    "imported_by": [
+      "agent/core/orchestrator.py",
+      "agent/tools/__init__.py",
+      "agent/tools/experiment_runner.py"
+    ]
+  },
+  "agent/tools/check_last_session.py": {
+    "classes": [],
+    "functions": [
+      "_load_json(path)",
+      "_ago(iso_str)",
+      "_duration(start, end)",
+      "_status_icon(status)",
+      "get_session_info(session_dir)",
+      "get_last_session_info(sessions_dir)",
+      "format_session_report(info, verbose)",
+      "check_last_session(sessions_dir, n, verbose)"
+    ],
+    "imports": [
+      "datetime",
+      "typing",
+      "json",
+      "argparse",
+      "sys",
+      "pathlib"
+    ],
+    "last_modified": "Fri Jun 19 13:56:06 2026 +0530",
+    "internal_imports": [],
+    "imported_by": []
+  },
+  "agent/tools/dev_reset.py": {
+    "classes": [],
+    "functions": [
+      "_is_protected(path, root)",
+      "dev_reset(root)"
+    ],
+    "imports": [
+      "agent.data.pipeline",
+      "datetime",
+      "shutil",
+      "json",
+      "pathlib",
+      "sys",
+      "os"
+    ],
+    "last_modified": "Fri Jun 19 15:25:44 2026 +0530",
+    "internal_imports": [
+      "agent/data/pipeline.py"
+    ],
+    "imported_by": []
+  },
+  "agent/tools/experiment_runner.py": {
+    "classes": [
+      {
+        "name": "ExperimentRunnerTool",
+        "methods": [
+          "__init__(self)",
+          "forward(self, exp_name, architecture_family, model_code, hyperparams)",
+          "_run_subprocess(self, script, exp_dir, timeout)",
+          "_next_exp_id(self, machine_id, exp_name)",
+          "_update_leaderboard(self, result)"
+        ]
+      }
+    ],
+    "functions": [
+      "_sanitize(name)",
+      "_get_machine_id()",
+      "_build_error_result(exp_id, architecture, architecture_family, machine_id, hyperparams, timestamp, error_message)",
+      "_format_result(result)"
+    ],
+    "imports": [
+      "subprocess",
+      "agent.tools.harness_template",
+      "yaml",
+      "datetime",
+      "typing",
+      "agent.core.tee_logger",
+      "json",
+      "smolagents",
+      "textwrap",
+      "sys",
+      "pathlib",
+      "dotenv",
+      "time",
+      "platform",
+      "re",
+      "agent.tools.audit_tool",
+      "os"
+    ],
+    "last_modified": "Fri Jun 19 13:48:18 2026 +0530",
+    "internal_imports": [
+      "agent/core/tee_logger.py",
+      "agent/tools/audit_tool.py",
+      "agent/tools/harness_template.py"
+    ],
+    "imported_by": [
+      "agent/core/orchestrator.py",
+      "agent/tools/__init__.py"
+    ]
+  },
+  "agent/tools/harness_template.py": {
+    "classes": [],
+    "functions": [],
+    "imports": [],
+    "last_modified": "Fri Jun 19 13:48:18 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/tools/experiment_runner.py"
+    ]
+  },
+  "agent/tools/leaderboard_tool.py": {
+    "classes": [
+      {
+        "name": "LeaderboardTool",
+        "methods": [
+          "__init__(self)",
+          "forward(self, top_n)"
+        ]
+      }
+    ],
+    "functions": [],
+    "imports": [
+      "typing",
+      "agent.core.tee_logger",
+      "json",
+      "smolagents",
+      "pathlib",
+      "agent.tools.rebuild_leaderboard"
+    ],
+    "last_modified": "Fri Jun 19 14:04:10 2026 +0530",
+    "internal_imports": [
+      "agent/core/tee_logger.py",
+      "agent/tools/rebuild_leaderboard.py"
+    ],
+    "imported_by": [
+      "agent/core/orchestrator.py",
+      "agent/tools/__init__.py"
+    ]
+  },
+  "agent/tools/rebuild_leaderboard.py": {
+    "classes": [],
+    "functions": [
+      "rebuild_leaderboard(experiments_dir, out_path, verbose)"
+    ],
+    "imports": [
+      "typing",
+      "datetime",
+      "json",
+      "argparse",
+      "sys",
+      "pathlib"
+    ],
+    "last_modified": "Fri Jun 19 13:10:22 2026 +0530",
+    "internal_imports": [],
+    "imported_by": [
+      "agent/tools/leaderboard_tool.py"
+    ]
+  }
+}

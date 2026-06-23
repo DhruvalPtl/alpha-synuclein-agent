@@ -1,0 +1,9 @@
+architecture_family: classical_ml
+exp_id: exp_010_laptop_smotetomek_xgb
+exp_name: smotetomek_xgb
+hyperparams:
+  model: xgboost
+  sampler: smotetomek
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:46:16'

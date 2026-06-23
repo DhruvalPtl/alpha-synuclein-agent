@@ -1,0 +1,53 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 12:03:15
+────────────────────────────────────────────────────────────
+[2026-06-23 12:03:15] [INFO   ] [ExperimentRunner] Files written to experiments\exp_046_laptop_brf_deep_tuned
+[2026-06-23 12:03:15] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:03:15] [INFO   ] [ExperimentRunner] Audit PASS for exp_046_laptop_brf_deep_tuned
+[2026-06-23 12:03:15] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_046_laptop_brf_deep_tuned\train_eval.py
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_046_laptop_brf_deep_tuned
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Experiment   = exp_046_laptop_brf_deep_tuned
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_046_laptop_brf_deep_tuned\model.py ...
+[2026-06-23 12:03:25] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 12:03:27] [INFO   ]   [harness] [harness] build_and_train() returned in 1.71s
+[2026-06-23 12:03:27] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 12:03:27] [INFO   ]   [harness] [harness] val_accuracy  = 0.6833
+[2026-06-23 12:03:27] [INFO   ]   [harness] [harness] val_f1_macro  = 0.4948
+[2026-06-23 12:03:27] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.825, '1': 0.3333333333333333, '2': 0.42105263157894735, '3': 0.4}
+[2026-06-23 12:03:27] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_046_laptop_brf_deep_tuned\results.json
+[2026-06-23 12:03:27] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.4948
+[2026-06-23 12:03:27] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=46  best_f1=0.6849
+[2026-06-23 12:03:27] [AGENT  ] [ExperimentRunner] exp_046_laptop_brf_deep_tuned COMPLETE | val_f1_macro=0.4948 | status=success | time=12.3s
+[2026-06-23 12:03:27] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_046_laptop_brf_deep_tuned
+  Arch       : brf_deep_tuned
+  Family     : ensemble_stack
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.4948
+  val_accuracy : 0.6833
+  train_time   : 1.7s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.8250  |################    |
+    1 (Low   ): 0.3333  |######              |
+    2 (Medium): 0.4211  |########            |
+    3 (High  ): 0.4000  |########            |
+==============================================================
+[2026-06-23 12:03:27] [INFO   ] [Context] step=68  input_tokens=4574 (real)  memory_steps=3
+[2026-06-23 12:03:31] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:03:31] [AGENT  ] [ExperimentRunner] Starting exp_047_laptop_xgb_lgbm_voting_adasyn_optimiz: xgb_lgbm_voting_adasyn_optimized (family=ensemble_stack)

@@ -1,0 +1,9 @@
+architecture_family: classical_ml
+exp_id: exp_004_laptop_lgbm_balanced
+exp_name: lgbm_balanced
+hyperparams:
+  class_weight: balanced
+  n_estimators: 100
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:44:04'

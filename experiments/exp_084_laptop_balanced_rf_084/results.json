@@ -1,0 +1,49 @@
+{
+  "exp_id": "exp_084_laptop_balanced_rf_084",
+  "machine_id": "laptop",
+  "architecture": "balanced_rf_084",
+  "architecture_family": "classical_ml",
+  "hyperparams": {
+    "n_estimators": 500,
+    "sampling_strategy": "all"
+  },
+  "timestamp": "2026-06-23T12:13:46",
+  "val_accuracy": 0.683333,
+  "val_f1_macro": 0.494846,
+  "val_f1_per_class": {
+    "0": 0.825,
+    "1": 0.3333333333333333,
+    "2": 0.42105263157894735,
+    "3": 0.4
+  },
+  "val_confusion_matrix": [
+    [
+      33,
+      2,
+      6,
+      6
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      0,
+      1,
+      4,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 2.112,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

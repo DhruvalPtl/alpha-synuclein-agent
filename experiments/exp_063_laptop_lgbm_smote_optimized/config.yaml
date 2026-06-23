@@ -1,0 +1,10 @@
+architecture_family: ensemble_stack
+exp_id: exp_063_laptop_lgbm_smote_optimized
+exp_name: lgbm_smote_optimized
+hyperparams:
+  learning_rate: 0.05
+  n_estimators: 300
+  num_leaves: 31
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:08:01'

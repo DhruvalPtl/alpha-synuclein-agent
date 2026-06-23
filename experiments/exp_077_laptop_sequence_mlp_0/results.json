@@ -1,0 +1,48 @@
+{
+  "exp_id": "exp_077_laptop_sequence_mlp_0",
+  "machine_id": "laptop",
+  "architecture": "sequence_mlp_0",
+  "architecture_family": "sequence_model",
+  "hyperparams": {
+    "iter": 0
+  },
+  "timestamp": "2026-06-23T12:12:19",
+  "val_accuracy": 0.883333,
+  "val_f1_macro": 0.681028,
+  "val_f1_per_class": {
+    "0": 0.9574468085106383,
+    "1": 0.5,
+    "2": 0.6,
+    "3": 0.6666666666666666
+  },
+  "val_confusion_matrix": [
+    [
+      45,
+      1,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      3,
+      2
+    ],
+    [
+      0,
+      0,
+      1,
+      4
+    ]
+  ],
+  "train_time_seconds": 2.238,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

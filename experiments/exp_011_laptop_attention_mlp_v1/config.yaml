@@ -1,0 +1,9 @@
+architecture_family: attention_based
+exp_id: exp_011_laptop_attention_mlp_v1
+exp_name: attention_mlp_v1
+hyperparams:
+  epochs: 50
+  model: AttentionMLP
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:47:12'

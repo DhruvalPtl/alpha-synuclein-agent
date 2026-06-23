@@ -1,0 +1,11 @@
+architecture_family: ensemble_stack
+exp_id: exp_043_laptop_xgb_lgbm_voting_adasyn_smote
+exp_name: xgb_lgbm_voting_adasyn_smote
+hyperparams:
+  ensemble: Voting
+  models:
+  - XGBoost+ADASYN
+  - LGBM+SMOTE
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:02:25'

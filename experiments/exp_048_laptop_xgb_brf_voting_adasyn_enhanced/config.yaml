@@ -1,0 +1,12 @@
+architecture_family: ensemble_stack
+exp_id: exp_048_laptop_xgb_brf_voting_adasyn_enhanced
+exp_name: xgb_brf_voting_adasyn_enhanced
+hyperparams:
+  depth: 8
+  ensemble: Voting
+  estimators:
+  - XGB+ADASYN
+  - BRF+ADASYN
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:03:47'

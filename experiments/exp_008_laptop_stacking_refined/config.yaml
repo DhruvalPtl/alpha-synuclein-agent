@@ -1,0 +1,11 @@
+architecture_family: ensemble_stack
+exp_id: exp_008_laptop_stacking_refined
+exp_name: stacking_refined
+hyperparams:
+  base_models:
+  - logistic
+  - mlp
+  final_estimator: rf
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:45:32'

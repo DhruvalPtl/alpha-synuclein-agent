@@ -1,0 +1,12 @@
+architecture_family: ensemble_stack
+exp_id: exp_068_laptop_weighted_ensemble_v2
+exp_name: weighted_ensemble_v2
+hyperparams:
+  model: GBC_RF_Voting
+  resampling: SMOTE
+  weights:
+  - 0.6
+  - 0.4
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:09:59'

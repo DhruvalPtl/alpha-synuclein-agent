@@ -1,0 +1,13 @@
+architecture_family: neural_network
+exp_id: exp_031_laptop_danet_inspired_v1
+exp_name: danet_inspired_v1
+hyperparams:
+  alpha: 0.01
+  dropout: 0.3
+  hidden_layers:
+  - 256
+  - 128
+  model: MLP
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T11:57:56'

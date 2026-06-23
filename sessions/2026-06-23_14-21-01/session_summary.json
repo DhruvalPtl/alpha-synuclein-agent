@@ -1,0 +1,10 @@
+{
+  "session_id": "2026-06-23_14-21-01",
+  "start_time": "2026-06-23T14:21:01",
+  "model_used": "local-qwen",
+  "machine_id": "laptop",
+  "end_time": "2026-06-23T14:21:02",
+  "total_experiments_this_session": 0,
+  "final_status": "crashed",
+  "error_message": "ValueError: simulated"
+}

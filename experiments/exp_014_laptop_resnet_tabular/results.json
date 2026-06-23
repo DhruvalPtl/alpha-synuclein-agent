@@ -1,0 +1,50 @@
+{
+  "exp_id": "exp_014_laptop_resnet_tabular",
+  "machine_id": "laptop",
+  "architecture": "resnet_tabular",
+  "architecture_family": "deep_residual",
+  "hyperparams": {
+    "model": "ResNetTabular",
+    "layers": "ResidualBlock",
+    "epochs": 150
+  },
+  "timestamp": "2026-06-23T11:48:24",
+  "val_accuracy": 0.8,
+  "val_f1_macro": 0.513001,
+  "val_f1_per_class": {
+    "0": 0.9247311827956989,
+    "1": 0.4,
+    "2": 0.36363636363636365,
+    "3": 0.36363636363636365
+  },
+  "val_confusion_matrix": [
+    [
+      43,
+      1,
+      1,
+      2
+    ],
+    [
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      1,
+      2,
+      2
+    ],
+    [
+      1,
+      0,
+      2,
+      2
+    ]
+  ],
+  "train_time_seconds": 16.012,
+  "model_params_count": 0,
+  "status": "success",
+  "error_message": null
+}

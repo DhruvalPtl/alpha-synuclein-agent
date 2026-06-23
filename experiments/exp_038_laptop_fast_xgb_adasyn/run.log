@@ -1,0 +1,53 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 12:01:03
+────────────────────────────────────────────────────────────
+[2026-06-23 12:01:03] [INFO   ] [ExperimentRunner] Files written to experiments\exp_038_laptop_fast_xgb_adasyn
+[2026-06-23 12:01:03] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:01:03] [INFO   ] [ExperimentRunner] Audit PASS for exp_038_laptop_fast_xgb_adasyn
+[2026-06-23 12:01:03] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_038_laptop_fast_xgb_adasyn\train_eval.py
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_038_laptop_fast_xgb_adasyn
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Experiment   = exp_038_laptop_fast_xgb_adasyn
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_038_laptop_fast_xgb_adasyn\model.py ...
+[2026-06-23 12:01:05] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 12:01:09] [INFO   ]   [harness] [harness] build_and_train() returned in 3.76s
+[2026-06-23 12:01:09] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 12:01:09] [INFO   ]   [harness] [harness] val_accuracy  = 0.9000
+[2026-06-23 12:01:09] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6762
+[2026-06-23 12:01:09] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.989247311827957, '1': 0.5, '2': 0.6153846153846154, '3': 0.6}
+[2026-06-23 12:01:09] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_038_laptop_fast_xgb_adasyn\results.json
+[2026-06-23 12:01:09] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6762
+[2026-06-23 12:01:09] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=38  best_f1=0.6849
+[2026-06-23 12:01:09] [AGENT  ] [ExperimentRunner] exp_038_laptop_fast_xgb_adasyn COMPLETE | val_f1_macro=0.6762 | status=success | time=6.4s
+[2026-06-23 12:01:09] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_038_laptop_fast_xgb_adasyn
+  Arch       : fast_xgb_adasyn
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6762
+  val_accuracy : 0.9000
+  train_time   : 3.8s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9892  |################### |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.6154  |############        |
+    3 (High  ): 0.6000  |############        |
+==============================================================
+[2026-06-23 12:01:09] [INFO   ] [Context] step=57  input_tokens=6416 (real)  memory_steps=4
+[2026-06-23 12:01:14] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:01:14] [AGENT  ] [ExperimentRunner] Starting exp_039_laptop_tuned_voting_smote_adasyn: tuned_voting_smote_adasyn (family=ensemble_stack)

@@ -1,0 +1,50 @@
+{
+  "exp_id": "exp_072_laptop_automl_lgbm_adasyn",
+  "machine_id": "laptop",
+  "architecture": "automl_lgbm_adasyn",
+  "architecture_family": "automl",
+  "hyperparams": {
+    "model": "LightGBM",
+    "resampling": "ADASYN",
+    "objective": "balanced"
+  },
+  "timestamp": "2026-06-23T12:11:28",
+  "val_accuracy": 0.883333,
+  "val_f1_macro": 0.670782,
+  "val_f1_per_class": {
+    "0": 0.967741935483871,
+    "1": 0.5,
+    "2": 0.6153846153846154,
+    "3": 0.6
+  },
+  "val_confusion_matrix": [
+    [
+      45,
+      1,
+      0,
+      1
+    ],
+    [
+      0,
+      1,
+      1,
+      0
+    ],
+    [
+      1,
+      0,
+      4,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 5.772,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

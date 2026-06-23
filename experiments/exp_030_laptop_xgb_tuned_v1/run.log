@@ -1,0 +1,74 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:56:56
+────────────────────────────────────────────────────────────
+[2026-06-23 11:56:56] [INFO   ] [ExperimentRunner] Files written to experiments\exp_030_laptop_xgb_tuned_v1
+[2026-06-23 11:56:56] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:56:56] [INFO   ] [ExperimentRunner] Audit PASS for exp_030_laptop_xgb_tuned_v1
+[2026-06-23 11:56:56] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_030_laptop_xgb_tuned_v1\train_eval.py
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_030_laptop_xgb_tuned_v1
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Experiment   = exp_030_laptop_xgb_tuned_v1
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_030_laptop_xgb_tuned_v1\model.py ...
+[2026-06-23 11:57:01] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:57:13] [INFO   ]   [harness] [harness] build_and_train() returned in 12.14s
+[2026-06-23 11:57:13] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:57:13] [INFO   ]   [harness] [harness] val_accuracy  = 0.8667
+[2026-06-23 11:57:13] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6487
+[2026-06-23 11:57:13] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9565217391304348, '1': 0.4, '2': 0.5714285714285714, '3': 0.6666666666666666}
+[2026-06-23 11:57:13] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_030_laptop_xgb_tuned_v1\results.json
+[2026-06-23 11:57:13] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6487
+[2026-06-23 11:57:14] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=30  best_f1=0.6810
+[2026-06-23 11:57:14] [AGENT  ] [ExperimentRunner] exp_030_laptop_xgb_tuned_v1 COMPLETE | val_f1_macro=0.6487 | status=success | time=18.1s
+[2026-06-23 11:57:14] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_030_laptop_xgb_tuned_v1
+  Arch       : xgb_tuned_v1
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6487
+  val_accuracy : 0.8667
+  train_time   : 12.1s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9565  |################### |
+    1 (Low   ): 0.4000  |########            |
+    2 (Medium): 0.5714  |###########         |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 11:57:14] [INFO   ] [Context] step=47  input_tokens=9362 (real)  memory_steps=9
+[2026-06-23 11:57:14] [AGENT  ] [Orchestrator] Compressing memory after 30 experiments.
+[2026-06-23 11:57:15] [AGENT  ] [Orchestrator] Compression summary (68 words):
+Evaluated architectures include Gradient Boosting (GB), Balanced Random Forest (RF), and various ensemble techniques (Stacking and Voting) involving XGBoost and RF. Performance scores (val_f1_macro) are as follows: ensemble_stack_xgb_rf (0.6532), xgb_tuned_v1 (0.6487), voting_xgb_rf_v2 (0.6451), gb_smote_v1 (0.6229), and balanced_rf_v2 (0.4948). 
+
+Key insight: Ensemble methods combining XGBoost and RF consistently outperform individual classical models by leveraging diverse predictive strengths across classes. 
+
+The current best is exp_002_laptop_smote_xgboost with a val_f1_macro of 0.6810.
+[2026-06-23 11:57:15] [AGENT  ] [Orchestrator] Memory compressed. steps_after=1
+[2026-06-23 11:57:19] [INFO   ] [LeaderboardTool] Leaderboard rebuilt from disk.
+[2026-06-23 11:57:19] [INFO   ] [LeaderboardTool] Report generated. total_runs=30  best_f1=0.6810  untried_families=1
+[2026-06-23 11:57:19] [INFO   ] [Context] step=48  input_tokens=4332 (real)  memory_steps=2
+[2026-06-23 11:57:23] [AGENT  ] [ArxivTool] Searching: 'imbalanced tabular classification protein'  (max=3)
+[2026-06-23 11:57:25] [INFO   ] [ArxivTool] Retrieved 3 papers.
+[2026-06-23 11:57:25] [INFO   ] [Throttle:gemini] sleeping 0.42s (target 5 RPM)
+[2026-06-23 11:57:27] [INFO   ] [ArxivTool] SKIP: Graph neural networks and attention-based CNN-LSTM for prote
+[2026-06-23 11:57:27] [INFO   ] [Throttle:gemini] sleeping 10.94s (target 5 RPM)
+[2026-06-23 11:57:39] [AGENT  ] [ArxivTool] ACTIONABLE: Generalized Oversampling for Learning from Imbalanced datase
+[2026-06-23 11:57:39] [INFO   ] [Throttle:gemini] sleeping 10.88s (target 5 RPM)
+[2026-06-23 11:57:51] [AGENT  ] [ArxivTool] ACTIONABLE: DANets: Deep Abstract Networks for Tabular Data Classificati
+[2026-06-23 11:57:51] [AGENT  ] [ArxivTool] Report ready: 2 actionable papers.
+[2026-06-23 11:57:51] [INFO   ] [Context] step=49  input_tokens=5396 (real)  memory_steps=3
+[2026-06-23 11:57:56] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:57:56] [AGENT  ] [ExperimentRunner] Starting exp_031_laptop_danet_inspired_v1: danet_inspired_v1 (family=neural_network)

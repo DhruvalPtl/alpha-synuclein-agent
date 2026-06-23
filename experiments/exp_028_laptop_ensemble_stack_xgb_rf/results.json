@@ -1,0 +1,52 @@
+{
+  "exp_id": "exp_028_laptop_ensemble_stack_xgb_rf",
+  "machine_id": "laptop",
+  "architecture": "ensemble_stack_xgb_rf",
+  "architecture_family": "ensemble_stack",
+  "hyperparams": {
+    "stacking": [
+      "RF",
+      "XGB"
+    ],
+    "final": "XGB"
+  },
+  "timestamp": "2026-06-23T11:56:12",
+  "val_accuracy": 0.866667,
+  "val_f1_macro": 0.653226,
+  "val_f1_per_class": {
+    "0": 0.946236559139785,
+    "1": 0.4,
+    "2": 0.6666666666666666,
+    "3": 0.6
+  },
+  "val_confusion_matrix": [
+    [
+      44,
+      2,
+      0,
+      1
+    ],
+    [
+      1,
+      1,
+      0,
+      0
+    ],
+    [
+      1,
+      0,
+      4,
+      1
+    ],
+    [
+      0,
+      0,
+      2,
+      3
+    ]
+  ],
+  "train_time_seconds": 19.175,
+  "model_params_count": 189,
+  "status": "success",
+  "error_message": null
+}

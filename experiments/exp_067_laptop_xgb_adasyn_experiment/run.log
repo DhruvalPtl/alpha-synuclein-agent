@@ -1,0 +1,66 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 12:08:55
+────────────────────────────────────────────────────────────
+[2026-06-23 12:08:55] [INFO   ] [ExperimentRunner] Files written to experiments\exp_067_laptop_xgb_adasyn_experiment
+[2026-06-23 12:08:55] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:08:55] [INFO   ] [ExperimentRunner] Audit PASS for exp_067_laptop_xgb_adasyn_experiment
+[2026-06-23 12:08:55] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_067_laptop_xgb_adasyn_experiment\train_eval.py
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_067_laptop_xgb_adasyn_experiment
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Experiment   = exp_067_laptop_xgb_adasyn_experiment
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_067_laptop_xgb_adasyn_experiment\model.py ...
+[2026-06-23 12:08:58] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 12:09:02] [INFO   ]   [harness] [harness] build_and_train() returned in 4.46s
+[2026-06-23 12:09:02] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 12:09:02] [INFO   ]   [harness] [harness] val_accuracy  = 0.8833
+[2026-06-23 12:09:02] [INFO   ]   [harness] [harness] val_f1_macro  = 0.6849
+[2026-06-23 12:09:02] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.9574468085106383, '1': 0.5, '2': 0.6153846153846154, '3': 0.6666666666666666}
+[2026-06-23 12:09:02] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_067_laptop_xgb_adasyn_experiment\results.json
+[2026-06-23 12:09:02] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.6849
+[2026-06-23 12:09:03] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=67  best_f1=0.6849
+[2026-06-23 12:09:03] [AGENT  ] [ExperimentRunner] exp_067_laptop_xgb_adasyn_experiment COMPLETE | val_f1_macro=0.6849 | status=success | time=7.5s
+[2026-06-23 12:09:03] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_067_laptop_xgb_adasyn_experiment
+  Arch       : xgb_adasyn_experiment
+  Family     : classical_ml
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.6849
+  val_accuracy : 0.8833
+  train_time   : 4.5s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.9574  |################### |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.6154  |############        |
+    3 (High  ): 0.6667  |#############       |
+==============================================================
+[2026-06-23 12:09:03] [INFO   ] [Context] step=95  input_tokens=5697 (real)  memory_steps=4
+[2026-06-23 12:09:05] [AGENT  ] [ArxivTool] Searching: 'peptide classification ensemble method imbalanced 2024'  (max=5)
+[2026-06-23 12:09:07] [INFO   ] [ArxivTool] Retrieved 5 papers.
+[2026-06-23 12:09:08] [AGENT  ] [ArxivTool] ACTIONABLE: Classification of Imbalanced Credit scoring data sets Based 
+[2026-06-23 12:09:08] [INFO   ] [Throttle:gemini] sleeping 11.00s (target 5 RPM)
+[2026-06-23 12:09:20] [INFO   ] [ArxivTool] SKIP: ICPR 2024 Competition on Domain Adaptation and GEneralizatio
+[2026-06-23 12:09:20] [INFO   ] [Throttle:gemini] sleeping 10.89s (target 5 RPM)
+[2026-06-23 12:09:31] [INFO   ] [ArxivTool] SKIP: OpenFact at CheckThat! 2024: Combining Multiple Attack Metho
+[2026-06-23 12:09:31] [INFO   ] [Throttle:gemini] sleeping 11.27s (target 5 RPM)
+[2026-06-23 12:09:44] [AGENT  ] [ArxivTool] ACTIONABLE: Generalized Oversampling for Learning from Imbalanced datase
+[2026-06-23 12:09:44] [INFO   ] [Throttle:gemini] sleeping 10.78s (target 5 RPM)
+[2026-06-23 12:09:56] [INFO   ] [ArxivTool] SKIP: NTU-NPU System for Voice Privacy 2024 Challenge
+[2026-06-23 12:09:56] [AGENT  ] [ArxivTool] Report ready: 2 actionable papers.
+[2026-06-23 12:09:56] [INFO   ] [Context] step=96  input_tokens=6734 (real)  memory_steps=5
+[2026-06-23 12:09:59] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 12:09:59] [AGENT  ] [ExperimentRunner] Starting exp_068_laptop_weighted_ensemble_v2: weighted_ensemble_v2 (family=ensemble_stack)

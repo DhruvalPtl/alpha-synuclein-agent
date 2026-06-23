@@ -1,0 +1,55 @@
+
+────────────────────────────────────────────────────────────
+  EXPERIMENT LOG START  2026-06-23 11:54:28
+────────────────────────────────────────────────────────────
+[2026-06-23 11:54:28] [INFO   ] [ExperimentRunner] Files written to experiments\exp_024_laptop_balanced_rf_v1
+[2026-06-23 11:54:28] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:54:28] [INFO   ] [ExperimentRunner] Audit PASS for exp_024_laptop_balanced_rf_v1
+[2026-06-23 11:54:28] [INFO   ] [ExperimentRunner] Running: d:\3rd sem M.tech\agent_workspace\.venv\Scripts\python.exe D:\3rd sem M.tech\agent_workspace\experiments\exp_024_laptop_balanced_rf_v1\train_eval.py
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] EXP_DIR      = D:\3rd sem M.tech\agent_workspace\experiments\exp_024_laptop_balanced_rf_v1
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] PROJECT_ROOT = D:\3rd sem M.tech\agent_workspace
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] Experiment   = exp_024_laptop_balanced_rf_v1
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] Loading train split ...
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] Loading val split ...
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] Train: X=(276, 189)  y=(276,)
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] Val  : X=(60, 189)    y=(60,)
+[2026-06-23 11:54:30] [INFO   ]   [harness] [harness] Applying scaler + selector ...
+[2026-06-23 11:54:31] [INFO   ]   [harness] [harness] Reduced: train (276, 189)  val (60, 189)
+[2026-06-23 11:54:31] [INFO   ]   [harness] [harness] Loading class weights ...
+[2026-06-23 11:54:31] [INFO   ]   [harness] [harness] Class weights: {0: 0.31797235023041476, 1: 5.75, 2: 2.76, 3: 3.1363636363636362}
+[2026-06-23 11:54:31] [INFO   ]   [harness] [harness] Importing build_and_train from D:\3rd sem M.tech\agent_workspace\experiments\exp_024_laptop_balanced_rf_v1\model.py ...
+[2026-06-23 11:54:31] [INFO   ]   [harness] [harness] Calling build_and_train() ...
+[2026-06-23 11:54:33] [INFO   ]   [harness] [harness] build_and_train() returned in 2.06s
+[2026-06-23 11:54:33] [INFO   ]   [harness] [harness] Evaluating on val set ...
+[2026-06-23 11:54:33] [INFO   ]   [harness] [harness] val_accuracy  = 0.6833
+[2026-06-23 11:54:33] [INFO   ]   [harness] [harness] val_f1_macro  = 0.5188
+[2026-06-23 11:54:33] [INFO   ]   [harness] [harness] val_f1/class  = {'0': 0.825, '1': 0.5, '2': 0.375, '3': 0.375}
+[2026-06-23 11:54:33] [INFO   ]   [harness] [harness] results.json written -> D:\3rd sem M.tech\agent_workspace\experiments\exp_024_laptop_balanced_rf_v1\results.json
+[2026-06-23 11:54:33] [INFO   ]   [harness] [harness] DONE — val_f1_macro = 0.5188
+[2026-06-23 11:54:34] [INFO   ] [ExperimentRunner] Leaderboard updated. total_runs=24  best_f1=0.6810
+[2026-06-23 11:54:34] [AGENT  ] [ExperimentRunner] exp_024_laptop_balanced_rf_v1 COMPLETE | val_f1_macro=0.5188 | status=success | time=5.8s
+[2026-06-23 11:54:34] [INFO   ] [ExperimentRunner] Full result:
+
+==============================================================
+  EXPERIMENT : exp_024_laptop_balanced_rf_v1
+  Arch       : balanced_rf_v1
+  Family     : ensemble_stack
+  Machine    : laptop
+  Status     : success
+==============================================================
+  val_f1_macro : 0.5188
+  val_accuracy : 0.6833
+  train_time   : 2.1s
+  model_params : 189
+
+  Per-class F1:
+    0 (No    ): 0.8250  |################    |
+    1 (Low   ): 0.5000  |##########          |
+    2 (Medium): 0.3750  |#######             |
+    3 (High  ): 0.3750  |#######             |
+==============================================================
+[2026-06-23 11:54:34] [INFO   ] [Context] step=38  input_tokens=8579 (real)  memory_steps=5
+[2026-06-23 11:54:38] [INFO   ] [LeaderboardTool] Leaderboard rebuilt from disk.
+[2026-06-23 11:54:38] [INFO   ] [LeaderboardTool] Report generated. total_runs=24  best_f1=0.6810  untried_families=1
+[2026-06-23 11:54:38] [INFO   ] [AUDIT] PASS — no forbidden patterns detected.
+[2026-06-23 11:54:38] [AGENT  ] [ExperimentRunner] Starting exp_025_laptop_smote_rf_v1: smote_rf_v1 (family=classical_ml)

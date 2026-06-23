@@ -1,0 +1,10 @@
+architecture_family: neural_network
+exp_id: exp_066_laptop_optimized_lgbm_reg
+exp_name: optimized_lgbm_reg
+hyperparams:
+  model: LGBM
+  regularization: l1_l2
+  resampling: SMOTE
+machine_id: laptop
+splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
+timestamp: '2026-06-23T12:08:43'
