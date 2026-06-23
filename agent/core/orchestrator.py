@@ -487,44 +487,79 @@ class AgentOrchestrator:
         self._min_experiments_before_stop = int(max_experiments * 0.8)
 
         # ── Override final_answer to block premature stopping ─────────────────
+        # HOW IT WORKS (CodeAgent-specific):
+        #   The Python executor detects final_answer() by catching the internal
+        #   FinalAnswerException.  If forward() raises a *different* exception,
+        #   that propagates as InterpreterError -> AgentExecutionError (AgentError)
+        #   which the outer step-loop catches, records as step.error, and continues.
+        #   Returning a string does NOT stop the agent from stopping — the
+        #   is_final_answer flag is set by FinalAnswerException, not the return value.
         if self._agent is not None:
             try:
                 _original_fa = self._agent.tools["final_answer"].forward
-                _orch_ref    = self        # closure reference
+                _orch_ref    = self
                 _min_exp     = self._min_experiments_before_stop
                 _logger_ref  = self.logger
+                _lb_path     = _LEADERBOARD_PATH   # captured from module-level constant
+
+                _ALL_FAMILIES_GUARD = [
+                    "classical_ml", "linear", "neural_network", "deep_residual",
+                    "ensemble_stack", "attention_based", "sequence_model",
+                    "modern_tabular", "protein_embedding",
+                ]
+
+                def _get_families_tried() -> list:
+                    """Read families_completed from the live leaderboard."""
+                    try:
+                        if _lb_path.exists():
+                            lb = json.loads(_lb_path.read_text())
+                            return lb.get("families_completed", [])
+                    except Exception:
+                        pass
+                    return []
+
+                def _get_untried_families() -> list:
+                    """Return architecture families not yet in the leaderboard."""
+                    tried = _get_families_tried()
+                    return [f for f in _ALL_FAMILIES_GUARD if f not in tried]
 
                 def _guarded_final_answer(answer):
-                    runs = _orch_ref._exp_count
+                    runs     = _orch_ref._exp_count
+                    untried  = _get_untried_families()
+
                     if runs < _min_exp:
-                        msg = (
-                            f"PREMATURE STOP BLOCKED: You have run {runs} "
-                            f"experiments this session but need at least {_min_exp} "
-                            f"before concluding. The leaderboard shows more "
-                            f"architecture families to explore. Keep going."
-                        )
                         _logger_ref.warning(
-                            f"[Guard] final_answer blocked: "
-                            f"only {runs}/{_min_exp} experiments done"
+                            f"[Guard] final_answer BLOCKED -- "
+                            f"{runs}/{_min_exp} experiments done"
                         )
                         print(
                             f"\n[Guard] BLOCKED: final_answer rejected -- "
                             f"{runs}/{_min_exp} experiments done. "
+                            f"Untried families: {untried}. "
                             f"Keep exploring!\n",
                             flush=True,
                         )
-                        return msg
+                        # Raise RuntimeError — propagates through Python executor
+                        # as InterpreterError -> AgentExecutionError (AgentError)
+                        # -> caught by outer loop -> agent step continues.
+                        raise RuntimeError(
+                            f"Cannot conclude yet. You have run {runs} experiments "
+                            f"this session but need at least {_min_exp}. "
+                            f"Families not yet tried: {untried}. "
+                            f"Continue exploring -- do not call final_answer again "
+                            f"until you have run {_min_exp - runs} more experiments."
+                        )
+
                     _logger_ref.agent(
-                        f"[Guard] final_answer approved: "
+                        f"[Guard] final_answer APPROVED -- "
                         f"{runs}/{_min_exp} experiments done"
                     )
                     return _original_fa(answer)
 
-                self._agent.tools["final_answer"].forward = \
-                    _guarded_final_answer
+                self._agent.tools["final_answer"].forward = _guarded_final_answer
                 self.logger.info(
                     f"[Orchestrator] final_answer guard installed "
-                    f"(min_experiments={_min_exp})"
+                    f"(min_experiments={_min_exp}, raise=RuntimeError)"
                 )
             except (KeyError, AttributeError) as _ge:
                 self.logger.warning(
