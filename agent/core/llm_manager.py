@@ -210,20 +210,27 @@ class _ThinkingTokenStripper:
             "[ThinkingStripper] Model output only thinking, no action code. "
             "Retrying with nudge..."
         )
+        from smolagents.models import ChatMessage, MessageRole
         nudge_messages = list(messages) + [
             # Feed the model's own thinking back as its assistant turn so far
-            {"role": "assistant", "content": raw},
+            ChatMessage(
+                role=MessageRole.ASSISTANT,
+                content=[{"type": "text", "text": raw}],
+            ),
             # Ask it to now output the actual action
-            {
-                "role": "user",
-                "content": (
-                    "You have finished thinking. Now output your action "
-                    "in the required format:\n\n"
-                    "Thought: <one sentence summary of what you will do>\n"
-                    "Code:\n```py\n<your python code here>\n```<end_code>\n\n"
-                    "Do NOT output any more thinking. Output the Code: block now."
-                ),
-            },
+            ChatMessage(
+                role=MessageRole.USER,
+                content=[{
+                    "type": "text",
+                    "text": (
+                        "You have finished thinking. Now output your action "
+                        "in the required format:\n\n"
+                        "Thought: <one sentence summary of what you will do>\n"
+                        "<code>\n<your python code here>\n</code>\n\n"
+                        "Do NOT output any more thinking. Output the code block now."
+                    ),
+                }],
+            ),
         ]
         try:
             response2 = self._model.generate(nudge_messages, **kwargs)
@@ -245,10 +252,10 @@ class _ThinkingTokenStripper:
         # Last-resort: inject a minimal valid action so smolagents doesn't loop
         response.content = (
             "Thought: I need to read the leaderboard and start experimenting.\n"
-            "Code:\n```py\n"
+            "<code>\n"
             "result = read_leaderboard(top_n=10)\n"
             "print(result)\n"
-            "```<end_code>"
+            "</code>"
         )
         self._sync_counters()
         return response
