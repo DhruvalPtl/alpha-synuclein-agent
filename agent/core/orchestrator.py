@@ -221,17 +221,14 @@ class AgentOrchestrator:
         else:
             self._prompt = SYSTEM_PROMPT
 
-        # ── Ollama: remind the model not to emit thinking text before Code: ───
-        # qwen3-coder and deepseek-r1 can output residual reasoning text even
-        # after <think>...</think> is stripped.  The reminder reinforces the
-        # CodeAgent format so smolagents can parse the response correctly.
+        # ── Ollama: remind the model of the required output format ─────────────
+        # thinking tokens are disabled at API level (extra_body={"think": false}),
+        # but we still reinforce the Thought:/code-block format so smolagents
+        # can parse the response correctly.
         _active_provider = MODELS.get(model_name, "").split("/")[0]
         if _active_provider == "ollama":
             _ollama_reminder = (
-                "\n\nIMPORTANT: Always start your response with the action block "
-                "directly. Never put any reasoning, thinking, or explanatory text "
-                "before the 'Thought:' line or '<code>' block. "
-                "The format must be:\n"
+                "\n\nIMPORTANT: Always respond using exactly this format:\n"
                 "Thought: <one sentence summary of what you will do>\n"
                 "<code>\n"
                 "<your python code here>\n"

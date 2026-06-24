@@ -249,27 +249,35 @@ class _ThinkingTokenStripper:
             "Retrying with nudge..."
         )
         from smolagents.models import ChatMessage, MessageRole
-        nudge_messages = list(messages) + [
-            # Feed the model's own thinking back as its assistant turn so far
-            ChatMessage(
-                role=MessageRole.ASSISTANT,
-                content=[{"type": "text", "text": raw}],
-            ),
-            # Ask it to now output the actual action
+
+        # Build the retry messages.  If the model returned NOTHING (raw=""),
+        # skip appending an empty ASSISTANT turn — it confuses the model.
+        # Only echo the model's output back when there is actual content.
+        nudge_messages = list(messages)
+        if raw.strip():   # model produced some text (thinking-only, no code)
+            nudge_messages.append(
+                ChatMessage(
+                    role=MessageRole.ASSISTANT,
+                    content=[{"type": "text", "text": raw}],
+                )
+            )
+        nudge_messages.append(
             ChatMessage(
                 role=MessageRole.USER,
                 content=[{
                     "type": "text",
                     "text": (
-                        "You have finished thinking. Now output your action "
-                        "in the required format:\n\n"
-                        "Thought: <one sentence summary of what you will do>\n"
-                        "<code>\n<your python code here>\n</code>\n\n"
-                        "Do NOT output any more thinking. Output the code block now."
+                        "You must now output your action in exactly this format "
+                        "(nothing else):\n\n"
+                        "Thought: <one sentence>\n"
+                        "<code>\n"
+                        "# python code here\n"
+                        "</code>\n\n"
+                        "Do NOT write any thinking or prose. Output the code block NOW."
                     ),
                 }],
             ),
-        ]
+        )
         try:
             response2 = self._model.generate(nudge_messages, **kwargs)
             if hasattr(response2, "content") and isinstance(response2.content, str):
@@ -814,6 +822,22 @@ class LLMManager:
             kwargs["model_id"] = "openai/" + model_id.split("/", 1)[1]
             kwargs.setdefault("api_base", "http://localhost:11434/v1")
             kwargs.setdefault("api_key", "ollama")
+
+            # For Qwen3 and DeepSeek-R1 thinking models, disable thinking tokens
+            # at the API level.  Qwen3 (via Ollama >=0.6.5) respects the
+            # extra_body={"think": false} flag and omits <think>...</think> entirely,
+            # producing clean output on the first try.  This eliminates the root
+            # cause of the empty-response loop.
+            _model_str = model_id.lower()
+            _is_thinking_model = any(
+                k in _model_str for k in ("qwen3", "deepseek-r1", "qwq")
+            )
+            if _is_thinking_model:
+                kwargs["extra_body"] = {"think": False}
+                self.logger.info(
+                    f"[LLMManager] Qwen3/DeepSeek-R1 detected: think=False set in extra_body "
+                    "(disables thinking tokens at source)"
+                )
 
         # LM Studio — OpenAI-compatible local server, no API key needed.
         # We use provider=openai with a custom api_base pointing to LM Studio.
