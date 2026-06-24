@@ -558,16 +558,43 @@ class AgentOrchestrator:
         # raise ToolException so the agent must try something genuinely different.
         if runner_tool is not None:
             try:
-                _EXPLOIT_KEYWORDS = ["xgb", "rf", "lgbm", "mlp", "svc", "gb"]
+                _EXPLOIT_KEYWORDS = ["xgb", "rf", "lgbm", "mlp", "svc", "gb", "lr", "knn"]
                 # At this point runner_tool.forward is already _tracked_forward
                 # (set earlier in run()).  We wrap that to add the repetition check
                 # while keeping tracking intact.
                 _tracked_fwd = runner_tool.forward
                 _rep_logger  = self.logger
+                _orch_ref    = self
+                
+                # Keep a running list of base learner keywords used
+                _history: list[str] = []
 
                 def _guarded_run_experiment(
                     exp_name, model_code, hyperparams="{}"
                 ):
+                    # Identify the base learner for this experiment
+                    lower_name = exp_name.lower()
+                    kw_found = "other"
+                    for kw in _EXPLOIT_KEYWORDS:
+                        if kw in lower_name:
+                            kw_found = kw
+                            break
+                    
+                    # Check the last 2 runs (if we are about to run the 3rd)
+                    if kw_found != "other" and len(_history) >= 2:
+                        if _history[-1] == kw_found and _history[-2] == kw_found:
+                            msg = (
+                                f"Repetition Guard: You have already run 3 consecutive "
+                                f"experiments using the '{kw_found}' base learner. "
+                                f"You MUST explore a different architecture now to find the best model. "
+                                f"Try a completely different algorithm."
+                            )
+                            _rep_logger.warning(f"[RepetitionGuard] BLOCKED {exp_name} ({kw_found})")
+                            print(f"\\n[RepetitionGuard] BLOCKED: {msg}\\n", flush=True)
+                            raise ToolException(msg)
+                    
+                    _history.append(kw_found)
+
                     # All clear — delegate to the tracked forward
                     return _tracked_fwd(exp_name, model_code, hyperparams)
 
