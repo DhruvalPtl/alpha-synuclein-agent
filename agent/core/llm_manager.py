@@ -179,7 +179,7 @@ class _ResponseParserWrapper:
     _MD_CODE_RE     = __import__("re").compile(r"```(?:py|python|)\s*\n(.*?)\n\s*```", __import__("re").DOTALL)
 
     # Default tiny fixer model — lightweight, fast, good at instruction following
-    DEFAULT_FIXER_MODEL = "openai/qwen2.5:1.5b"
+    DEFAULT_FIXER_MODEL = "openai/qwen2.5:1.5b-instruct"
     DEFAULT_FIXER_BASE  = "http://localhost:11434/v1"
 
     # Safe rotating fallbacks when both main + fixer fail
