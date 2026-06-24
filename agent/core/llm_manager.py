@@ -797,27 +797,6 @@ class LLMManager:
             kwargs.setdefault("api_base", "http://localhost:11434/v1")
             kwargs.setdefault("api_key", "ollama")
 
-            # For Qwen3 and DeepSeek-R1 thinking models, disable thinking tokens
-            # at the API level.  Qwen3 (via Ollama >=0.6.5) respects the
-            # extra_body={"think": false} flag and omits <think>...</think> entirely,
-            # producing clean output on the first try.  This eliminates the root
-            # cause of the empty-response loop.
-            _model_str = model_id.lower()
-            _is_thinking_model = any(
-                k in _model_str for k in ("qwen3", "deepseek-r1", "qwq")
-            )
-            if _is_thinking_model:
-                # When routing via Ollama's OpenAI-compatible /v1 endpoint (which
-                # we do), LiteLLM forwards extra_body as chat_template_kwargs.
-                # The top-level "think" key only works with Ollama's native
-                # /api/chat endpoint — it is silently ignored on /v1.
-                kwargs["extra_body"] = {
-                    "chat_template_kwargs": {"enable_thinking": False}
-                }
-                self.logger.info(
-                    "[LLMManager] Qwen3/DeepSeek-R1 detected: enable_thinking=False set "
-                    "(disables thinking tokens at source via chat_template_kwargs)"
-                )
 
         # LM Studio — OpenAI-compatible local server, no API key needed.
         # We use provider=openai with a custom api_base pointing to LM Studio.
