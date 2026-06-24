@@ -96,9 +96,10 @@ from agent.core.tee_logger import TeeLogger
 from agent.tools.audit_tool import AuditTool
 from agent.tools.harness_template import HARNESS_CODE
 
-_LEADERBOARD_PATH = Path("master_log/leaderboard.json")
-_EXPERIMENTS_DIR  = Path("experiments")
-_SPLITS_DIR       = Path("data/splits")
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
+_LEADERBOARD_PATH = _PROJECT_ROOT / "master_log" / "leaderboard.json"
+_EXPERIMENTS_DIR  = _PROJECT_ROOT / "experiments"
+_SPLITS_DIR       = _PROJECT_ROOT / "data" / "splits"
 
 _HARNESS_TIMEOUT = 3600   # 1 hour total (train + eval combined)
 

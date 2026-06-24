@@ -43,7 +43,8 @@ _LEVEL_COLOURS = {
     "AGENT":   _CYAN,
 }
 
-_MASTER_LOG_DIR  = "master_log"
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
+_MASTER_LOG_DIR  = _PROJECT_ROOT / "master_log"
 _MASTER_LOG_FILE = "master_terminal.log"
 
 

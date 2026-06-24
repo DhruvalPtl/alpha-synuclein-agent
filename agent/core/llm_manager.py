@@ -39,6 +39,8 @@ MODELS: Dict[str, str] = {
     "gemini-flash":   "gemini/gemini-3.5-flash",
     "gemini-flash-lite": "gemini/gemini-3.1-flash-lite",
     "gemini-pro":     "gemini/gemini-3.1-pro-preview",
+    "groq-qwen":      "groq/qwen3-32b",
+    "groq-llama3.1":     "groq/llama-3.1-8b-instant",
     "groq-llama":     "groq/llama-3.3-70b-versatile",
     "groq-mixtral":   "groq/mixtral-8x7b-32768",
     "mistral-small":  "mistral/mistral-small-latest",
@@ -55,6 +57,7 @@ MODELS: Dict[str, str] = {
     # have loaded.  The model string after 'lmstudio/' is ignored by
     # LiteLLM — it always talks to whatever is loaded in LM Studio.
     "lmstudio-qwen":     "openai/lmstudio-qwen",
+    "lmstudio-qwen3":    "openai/lmstudio-qwen3-8b-k",
     "lmstudio-deepseek": "openai/lmstudio-deepseek",
     "lmstudio-mistral":  "openai/lmstudio-mistral",
     "lmstudio-llama":    "openai/lmstudio-llama",
@@ -78,7 +81,7 @@ _API_KEY_MAP: Dict[str, str] = {
 # ── LM Studio base URL ────────────────────────────────────────────────────────
 # LM Studio's local server is OpenAI-compatible. Default port is 1234.
 # Change this if you've configured a different port in LM Studio.
-_LMSTUDIO_BASE_URL = "http://localhost:1234/v1"
+_LMSTUDIO_BASE_URL = "http://127.0.0.1:8080/v1"
 _LMSTUDIO_PREFIXES = {"lmstudio-"}   # any model key starting with this
 
 # ── Default fallback order (first working model wins) ─────────────────────────

@@ -23,7 +23,8 @@ import time
 from pathlib import Path
 from typing import Optional
 
-_SESSIONS_DIR = Path("sessions")
+_PROJECT_ROOT = Path(__file__).parent.parent.parent.resolve()
+_SESSIONS_DIR = _PROJECT_ROOT / "sessions"
 
 
 def _machine_id() -> str:

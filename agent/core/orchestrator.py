@@ -22,6 +22,12 @@ import datetime
 from pathlib import Path
 from typing import Optional
 
+try:
+    from smolagents import ToolException
+except ImportError:
+    class ToolException(Exception):
+        pass
+
 from agent.core.tee_logger import TeeLogger
 from agent.core.llm_manager import LLMManager, TwoBrainManager
 from agent.core.session_manager import SessionManager
@@ -539,10 +545,10 @@ class AgentOrchestrator:
                             f"Keep exploring!\n",
                             flush=True,
                         )
-                        # Raise RuntimeError — propagates through Python executor
+                        # Raise ToolException — propagates through Python executor
                         # as InterpreterError -> AgentExecutionError (AgentError)
                         # -> caught by outer loop -> agent step continues.
-                        raise RuntimeError(
+                        raise ToolException(
                             f"Cannot conclude yet. You have run {runs} experiments "
                             f"this session but need at least {_min_exp}. "
                             f"Families not yet tried: {untried}. "
@@ -559,7 +565,7 @@ class AgentOrchestrator:
                 self._agent.tools["final_answer"].forward = _guarded_final_answer
                 self.logger.info(
                     f"[Orchestrator] final_answer guard installed "
-                    f"(min_experiments={_min_exp}, raise=RuntimeError)"
+                    f"(min_experiments={_min_exp}, raise=ToolException)"
                 )
             except (KeyError, AttributeError) as _ge:
                 self.logger.warning(
@@ -568,7 +574,7 @@ class AgentOrchestrator:
 
         # ── Override run_experiment to block exploitation loops ───────────────
         # If the last 3 experiments all share the same base-learner keyword,
-        # raise RuntimeError so the agent must try something genuinely different.
+        # raise ToolException so the agent must try something genuinely different.
         if runner_tool is not None:
             try:
                 _EXPLOIT_KEYWORDS = ["xgb", "rf", "lgbm", "mlp", "svc", "gb"]
@@ -602,7 +608,7 @@ class AgentOrchestrator:
                                         f"different architecture before continuing.\n",
                                         flush=True,
                                     )
-                                    raise RuntimeError(
+                                    raise ToolException(
                                         f"Exploitation detected — last 3 experiments "
                                         f"all used '{current_family}'. You must try a genuinely "
                                         f"different architecture before continuing. "
@@ -610,7 +616,7 @@ class AgentOrchestrator:
                                         f"graph methods, or anything not in your recent "
                                         f"history. Read leaderboard then pick something new."
                                     )
-                    except RuntimeError:
+                    except ToolException:
                         raise   # let the guard propagate
                     except Exception:
                         pass    # leaderboard not ready yet — allow experiment
@@ -621,7 +627,7 @@ class AgentOrchestrator:
                 runner_tool.forward = _guarded_run_experiment
                 self.logger.info(
                     "[Orchestrator] run_experiment repetition guard installed "
-                    "(blocks 3 consecutive same-base-learner runs, raise=RuntimeError)"
+                    "(blocks 3 consecutive same-base-learner runs, raise=ToolException)"
                 )
             except Exception as _rge:
                 self.logger.warning(
