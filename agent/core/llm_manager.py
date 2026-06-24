@@ -170,6 +170,8 @@ class _ThinkingTokenStripper:
         self.model_id                  = getattr(model, "model_id", "")
         self.last_input_token_count    = 0
         self.last_output_token_count   = 0
+        self._consecutive_fallbacks    = 0   # reset each time model returns valid code
+        self._fallback_index           = 0   # cycles through _FALLBACK_ACTIONS
 
     # ── helpers ────────────────────────────────────────────────────────────────
 
@@ -233,6 +235,9 @@ class _ThinkingTokenStripper:
             should_retry = (not has_code_block) or (len(stripped) < 20)
 
         if not should_retry:
+            # Valid response — reset the fallback counter
+            self._consecutive_fallbacks = 0
+            self._fallback_index = 0
             response.content = stripped
             response.raw_content = raw
             self._sync_counters()
@@ -277,6 +282,9 @@ class _ThinkingTokenStripper:
                     f"raw={len(raw2)}chars  stripped={len(stripped2)}chars  has_code_block={has_code_block2}"
                 )
                 if len(stripped2) >= 20 and has_code_block2:
+                    # Retry succeeded — reset fallback counter
+                    self._consecutive_fallbacks = 0
+                    self._fallback_index = 0
                     response2.content = stripped2
                     response2.raw_content = raw2
                     self._sync_counters()
@@ -286,18 +294,76 @@ class _ThinkingTokenStripper:
         except Exception as exc:
             print(f"[ThinkingStripper] Retry call failed: {exc}")
 
-        # Last-resort: inject a safe read_leaderboard call so smolagents makes
-        # *some* forward progress (reads context) without hitting the repetition
-        # guard.  A hardcoded experiment type (e.g. RF) would get permanently
-        # blocked after 3 consecutive calls and cause an infinite loop.
-        _fb_code = (
-            "Thought: Read the leaderboard to understand what has been tried so far.\n"
-            "<code>\n"
-            "leaderboard = read_leaderboard(top_n=20)\n"
-            "print(leaderboard)\n"
-            "</code>"
+        # Last-resort: rotate through different safe actions so smolagents never
+        # loops forever on the same call.  After _MAX_CONSECUTIVE_FALLBACKS
+        # consecutive failures we raise so smolagents can handle the error.
+        _MAX_CONSECUTIVE_FALLBACKS = 8
+        self._consecutive_fallbacks += 1
+        if self._consecutive_fallbacks > _MAX_CONSECUTIVE_FALLBACKS:
+            self._consecutive_fallbacks = 0
+            self._fallback_index = 0
+            raise Exception(
+                "[ThinkingStripper] Model produced no valid code block for "
+                f"{_MAX_CONSECUTIVE_FALLBACKS} consecutive steps. "
+                "Forcing smolagents error recovery."
+            )
+
+        # Five rotating fallback actions — each is safe and always available.
+        _FALLBACK_ACTIONS = [
+            (
+                "Thought: Read the leaderboard to see what has been tried so far.\n"
+                "<code>\n"
+                "leaderboard = read_leaderboard(top_n=20)\n"
+                "print(leaderboard)\n"
+                "</code>"
+            ),
+            (
+                "Thought: Search arXiv for the best ML methods for small imbalanced tabular datasets.\n"
+                "<code>\n"
+                "results = search_arxiv_papers('class imbalance small dataset tabular classification', max_results=3)\n"
+                "print(results)\n"
+                "</code>"
+            ),
+            (
+                "Thought: Search the web for XGBoost vs LightGBM on imbalanced classification.\n"
+                "<code>\n"
+                "results = web_search('XGBoost LightGBM imbalanced multiclass classification best practice')\n"
+                "print(results)\n"
+                "</code>"
+            ),
+            (
+                "Thought: Audit a gradient boosting model code before running it.\n"
+                "<code>\n"
+                "_gb_code = '''\ndef build_and_train(X_train, y_train, X_val, y_val, class_weights):\n"
+                "    from sklearn.ensemble import GradientBoostingClassifier\n"
+                "    from sklearn.multiclass import OneVsRestClassifier\n"
+                "    import numpy as np\n"
+                "    sample_w = np.array([class_weights[int(y)] for y in y_train])\n"
+                "    m = GradientBoostingClassifier(n_estimators=200, max_depth=3,\n"
+                "        learning_rate=0.05, random_state=42)\n"
+                "    m.fit(X_train, y_train, sample_weight=sample_w)\n"
+                "    return m\n"
+                "'''\n"
+                "result = audit_code(_gb_code)\n"
+                "print(result)\n"
+                "</code>"
+            ),
+            (
+                "Thought: Read the leaderboard again and plan the next experiment.\n"
+                "<code>\n"
+                "lb = read_leaderboard(top_n=20)\n"
+                "print(lb)\n"
+                "</code>"
+            ),
+        ]
+
+        idx = self._fallback_index % len(_FALLBACK_ACTIONS)
+        self._fallback_index += 1
+        _fb_code = _FALLBACK_ACTIONS[idx]
+        print(
+            f"[ThinkingStripper] Injecting rotating fallback #{self._consecutive_fallbacks} "
+            f"(action {idx+1}/{len(_FALLBACK_ACTIONS)})."
         )
-        print("[ThinkingStripper] Injecting safe fallback: read_leaderboard.")
         response.content = _fb_code
         response.raw_content = _fb_code
         self._sync_counters()
