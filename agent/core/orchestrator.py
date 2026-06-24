@@ -331,8 +331,26 @@ class AgentOrchestrator:
         if runner_tool is not None:
             _orig_forward = runner_tool.forward
             _orch = self
+            # max_experiments captured in closure so _tracked_forward can enforce it
+            _max_exp = max_experiments
 
             def _tracked_forward(exp_name, model_code, hyperparams="{}"):
+                # ── HARD BUDGET CAP ─────────────────────────────────────────────
+                # ToolException is shown to the LLM as an error it must respond to.
+                if _orch._exp_count >= _max_exp:
+                    _orch.logger.warning(
+                        f"[BudgetGuard] HARD STOP: {_orch._exp_count}/{_max_exp} experiments done."
+                    )
+                    print(
+                        f"\n[BudgetGuard] BUDGET EXHAUSTED: {_orch._exp_count}/{_max_exp} experiments done."
+                        f" You MUST call final_answer() now to conclude the session.\n",
+                        flush=True,
+                    )
+                    raise ToolException(
+                        f"BUDGET EXHAUSTED: You have already run {_orch._exp_count} experiments "
+                        f"out of your budget of {_max_exp}. "
+                        f"You MUST call final_answer() now. Do NOT call run_experiment again."
+                    )
                 if _orch._reporter is not None:
                     _orch._reporter.update_exp(exp_name)
                 _orch._session.tick(
@@ -347,9 +365,18 @@ class AgentOrchestrator:
                     step        = _orch._exp_count,
                     status      = "running",
                 )
+                # Notify when budget cap is hit
+                if _orch._exp_count >= _max_exp:
+                    print(
+                        f"\n[BudgetGuard] Budget reached: {_orch._exp_count}/{_max_exp} experiments done."
+                        f" Call final_answer() now to finish.\n",
+                        flush=True,
+                    )
                 return result
 
             runner_tool.forward = _tracked_forward
+        else:
+            _max_exp = max_experiments  # still needed for guards below
 
         # ── Token-count logger + memory-pruning step_callback ─────────────────
         # This callback fires AFTER each agent step (ActionStep), which means
@@ -422,6 +449,25 @@ class AgentOrchestrator:
                     setattr(_orch, marker, True)
                     _orch._compress_memory()
 
+            # ── Budget watchdog: trigger stop if over-budget for >3 steps ─────
+            # This handles the case where the LLM ignores the ToolException and
+            # keeps producing output without calling run_experiment or final_answer.
+            if _orch._exp_count >= _max_exp:
+                _over_marker = f"_over_budget_steps"
+                _over_count  = getattr(_orch, _over_marker, 0) + 1
+                setattr(_orch, _over_marker, _over_count)
+                if _over_count >= 3:
+                    _orch.logger.warning(
+                        f"[BudgetGuard] Agent has been over-budget for {_over_count} steps. "
+                        f"Triggering stop_event."
+                    )
+                    print(
+                        f"\n[BudgetGuard] Agent ignored budget for {_over_count} steps — "
+                        f"forcing stop.\n",
+                        flush=True,
+                    )
+                    _orch._stop_event.set()
+
         # Register AFTER the concise reporter (so it runs second)
         self._agent.step_callbacks.register(_ActionStep, _pruning_callback)
 
@@ -464,6 +510,14 @@ class AgentOrchestrator:
 
                 def _guarded_final_answer(answer):
                     runs = _orch_ref._exp_count
+
+                    # Always allow if budget is exhausted (hard cap hit)
+                    if runs >= _max_exp:
+                        _logger_ref.agent(
+                            f"[Guard] final_answer APPROVED (budget exhausted) -- "
+                            f"{runs}/{_max_exp} experiments done"
+                        )
+                        return _original_fa(answer)
 
                     if runs < _min_exp:
                         _logger_ref.warning(
