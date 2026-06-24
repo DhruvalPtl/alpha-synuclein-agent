@@ -181,7 +181,10 @@ class _ThinkingTokenStripper:
     # ── main call ──────────────────────────────────────────────────────────────
 
     def __call__(self, messages, **kwargs):
-        response = self._model(messages, **kwargs)
+        return self.generate(messages, **kwargs)
+
+    def generate(self, messages, **kwargs):
+        response = self._model.generate(messages, **kwargs)
 
         if not (hasattr(response, "content") and isinstance(response.content, str)):
             self._sync_counters()
@@ -223,7 +226,7 @@ class _ThinkingTokenStripper:
             },
         ]
         try:
-            response2 = self._model(nudge_messages, **kwargs)
+            response2 = self._model.generate(nudge_messages, **kwargs)
             if hasattr(response2, "content") and isinstance(response2.content, str):
                 stripped2 = self._strip(response2.content)
                 print(
@@ -602,7 +605,10 @@ class LLMManager:
                     if provider == "gemini":
                         manager._last_gemini_call = manager._provider_last_call[provider]
 
-                return manager.call_with_backoff(raw_model, *args, **kwargs)
+                return manager.call_with_backoff(raw_model.generate, *args, **kwargs)
+
+            def generate(self_inner, *args, **kwargs):
+                return self_inner(*args, **kwargs)
 
             def __getattr__(self_inner, name):
                 return getattr(raw_model, name)
