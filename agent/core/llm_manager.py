@@ -175,13 +175,20 @@ class _ThinkingTokenStripper:
                 flags=re.DOTALL,
             ).strip()
 
-            # Safety check — if stripping removed everything useful, return original
+            # Safety check — if stripping removed everything useful, don't return
+            # the raw <think> block (smolagents can't parse it and silently loops).
+            # Instead, replace with an explicit nudge so the agent takes an action.
             if len(stripped) < 20:
                 print(
                     f"[ThinkingStripper] WARNING: stripped content too short "
-                    f"({len(stripped)} chars), returning original"
+                    f"({len(stripped)} chars) — injecting fallback action nudge."
                 )
-                # Do NOT modify response — return as-is
+                response.content = (
+                    "Thought: I need to continue with the task.\n"
+                    "Code:\n```py\n"
+                    "print('Continuing...')\n"
+                    "```"
+                )
             else:
                 response.content = stripped
 
@@ -463,6 +470,18 @@ class LLMManager:
         # Ollama — local, no API key, custom base URL
         if provider == "ollama":
             kwargs.setdefault("api_base", "http://localhost:11434")
+            # Disable thinking tokens for qwen3 models at the source.
+            # Qwen3 supports think=False via extra_body to suppress <think> blocks.
+            # This is cleaner than post-hoc stripping and prevents empty-step loops.
+            _model_lower = model_id.lower()
+            if "qwen3" in _model_lower:
+                kwargs.setdefault("extra_body", {})
+                if isinstance(kwargs["extra_body"], dict):
+                    kwargs["extra_body"].setdefault("think", False)
+                self.logger.info(
+                    f"[LLMManager] Ollama qwen3 detected: setting think=False "
+                    f"to suppress <think> blocks at source."
+                )
 
         # LM Studio — OpenAI-compatible local server, no API key needed.
         # We use provider=openai with a custom api_base pointing to LM Studio.
@@ -481,7 +500,9 @@ class LLMManager:
         raw_model = LiteLLMModel(**kwargs)
 
         # Ollama — strip <think>...</think> tokens emitted by qwen3/deepseek-r1
-        # BEFORE smolagents' CodeAgent tries to parse the response for "Code:".
+        # as a second-line defense.  The think=False extra_body above should stop
+        # qwen3 from generating them, but deepseek-r1 and other models still need
+        # this wrapper.  It also handles any model that ignores think=False.
         if provider == "ollama":
             raw_model = _ThinkingTokenStripper(raw_model)
             self.logger.info(
