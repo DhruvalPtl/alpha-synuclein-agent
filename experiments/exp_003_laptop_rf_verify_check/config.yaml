@@ -1,8 +1,0 @@
-architecture_family: tree_ensemble
-exp_id: exp_003_laptop_rf_verify_check
-exp_name: rf_verify_check
-hyperparams:
-  n_estimators: 50
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-24T16:50:10'
