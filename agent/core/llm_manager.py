@@ -594,7 +594,11 @@ class LLMManager:
 
         # Ollama — local, no API key, custom base URL
         if provider == "ollama":
-            kwargs.setdefault("api_base", "http://localhost:11434")
+            # Route through the OpenAI-compatible endpoint (/v1) by mapping the model prefix to 'openai/'.
+            # This forces Ollama to output thinking/reasoning blocks inside the main content wrapped in <think>...</think> tags.
+            kwargs["model_id"] = "openai/" + model_id.split("/", 1)[1]
+            kwargs.setdefault("api_base", "http://localhost:11434/v1")
+            kwargs.setdefault("api_key", "ollama")
 
         # LM Studio — OpenAI-compatible local server, no API key needed.
         # We use provider=openai with a custom api_base pointing to LM Studio.
