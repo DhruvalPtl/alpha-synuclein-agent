@@ -62,7 +62,7 @@ def imp_runner():
     import inspect
     sig = inspect.signature(r.forward)
     params = list(sig.parameters.keys())
-    assert params == ['exp_name','architecture_family','model_code','hyperparams'], str(params)
+    assert params == ['exp_name','model_code','hyperparams'], str(params)
     return str(params)
 check("experiment_runner", imp_runner)
 
@@ -294,7 +294,6 @@ def build_and_train(X_train, y_train, X_val, y_val, class_weights):
 """
     result_str = runner.forward(
         exp_name            = "rf_verify_check",
-        architecture_family = "classical_ml",
         model_code          = model_code,
         hyperparams         = '{"n_estimators": 50}',
     )

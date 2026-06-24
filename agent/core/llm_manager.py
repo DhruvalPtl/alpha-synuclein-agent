@@ -203,21 +203,26 @@ class _ThinkingTokenStripper:
         # or list agent-specific instructions/tools. Tool queries (like ArxivTool filter) are short and task-specific.
         is_agent_query = False
         if messages:
-            # Check the first system/user message content
-            first_msg = messages[0]
-            first_content = ""
-            if isinstance(first_msg, dict):
-                first_content = str(first_msg.get("content", ""))
-            elif hasattr(first_msg, "content"):
-                first_content = str(first_msg.content)
-            
-            if "You are an autonomous ML researcher" in first_content or "final_answer" in first_content:
-                is_agent_query = True
+            for msg in messages:
+                role = getattr(msg, "role", None)
+                content = ""
+                if hasattr(msg, "content"):
+                    content = str(msg.content)
+                elif isinstance(msg, dict):
+                    role = msg.get("role", role)
+                    content = str(msg.get("content", ""))
+                
+                role_str = str(role).lower()
+                # If there's a system message that sets up the researcher persona or formatting instructions
+                if "system" in role_str and ("autonomous ml researcher" in content.lower() or "build_and_train" in content):
+                    is_agent_query = True
+                    break
 
         if len(stripped) >= 20 or not is_agent_query:
             # Normal case OR non-agent queries (like tool filters, simple prompts):
             # return stripped content directly. We do not apply retry/fallback to simple tool prompts.
             response.content = stripped
+            response.raw_content = raw
             self._sync_counters()
             return response
 
@@ -251,13 +256,15 @@ class _ThinkingTokenStripper:
         try:
             response2 = self._model.generate(nudge_messages, **kwargs)
             if hasattr(response2, "content") and isinstance(response2.content, str):
-                stripped2 = self._strip(response2.content)
+                raw2 = response2.content
+                stripped2 = self._strip(raw2)
                 print(
                     f"[ThinkingStripper] Retry result: "
-                    f"raw={len(response2.content)}chars  stripped={len(stripped2)}chars"
+                    f"raw={len(raw2)}chars  stripped={len(stripped2)}chars"
                 )
                 if len(stripped2) >= 20:
                     response2.content = stripped2
+                    response2.raw_content = raw2
                     self._sync_counters()
                     return response2
                 # Retry also came back thinking-only — last resort fallback
@@ -273,6 +280,7 @@ class _ThinkingTokenStripper:
             "print(result)\n"
             "</code>"
         )
+        response.raw_content = response.content
         self._sync_counters()
         return response
 
@@ -284,6 +292,103 @@ class _ThinkingTokenStripper:
 
     def __getattr__(self, name):
         return getattr(self._model, name)
+
+
+def _format_messages_for_log(messages) -> str:
+    lines = []
+    for i, msg in enumerate(messages):
+        role = "unknown"
+        content_text = ""
+        
+        if hasattr(msg, "role"):
+            role = str(msg.role)
+        elif isinstance(msg, dict):
+            role = str(msg.get("role", "unknown"))
+            
+        if hasattr(msg, "content"):
+            content = msg.content
+        elif isinstance(msg, dict):
+            content = msg.get("content", "")
+        else:
+            content = str(msg)
+            
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict):
+                    parts.append(item.get("text", ""))
+                else:
+                    parts.append(str(item))
+            content_text = "\n".join(parts)
+        else:
+            content_text = str(content)
+            
+        # Truncate if too long (e.g. system instructions or huge contexts)
+        if len(content_text) > 2000:
+            content_text = content_text[:1000] + "\n... [TRUNCATED FOR LOGS] ...\n" + content_text[-1000:]
+            
+        lines.append(f"--- MSG #{i+1} | ROLE: {role} ---")
+        lines.append(content_text)
+    return "\n".join(lines)
+
+
+def _log_llm_call(model_id: str, messages: list, raw_content: str, stripped_content: str) -> None:
+    import datetime
+    try:
+        log_dir = Path("master_log")
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "llm_responses.log"
+        
+        timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        formatted_messages = _format_messages_for_log(messages)
+        
+        # Check if there are thoughts (e.g., <think> tags)
+        has_think = "<think>" in raw_content
+        
+        log_entry = [
+            "=" * 80,
+            f"TIMESTAMP: {timestamp}",
+            f"MODEL: {model_id}",
+            "=" * 80,
+            "PROMPT / MESSAGE HISTORY:",
+            "-" * 80,
+            formatted_messages,
+            "-" * 80,
+            "",
+        ]
+        
+        if has_think:
+            # Extract thinking content for clear visibility
+            import re
+            think_match = re.search(r"<think>(.*?)</think>", raw_content, re.DOTALL)
+            think_content = think_match.group(1).strip() if think_match else ""
+            log_entry += [
+                "THINKING PROCESS (<think>):",
+                "-" * 80,
+                think_content,
+                "-" * 80,
+                "",
+                "CLEAN RESPONSE (SENT TO AGENT):",
+                "-" * 80,
+                stripped_content,
+                "-" * 80,
+            ]
+        else:
+            log_entry += [
+                "RESPONSE:",
+                "-" * 80,
+                raw_content,
+                "-" * 80,
+            ]
+            
+        log_entry.append("\n\n")
+        
+        # Append to log file
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write("\n".join(log_entry))
+            
+    except Exception as e:
+        print(f"[LLMManager] Logging failed: {e}")
 
 
 def _standardize_messages(messages):
@@ -335,6 +440,15 @@ class _MessageStandardizer:
         messages = _standardize_messages(messages)
         res = self._model.generate(messages, **kwargs)
         self._sync_counters()
+        
+        # Log response with raw thoughts if available
+        raw_content = getattr(res, "raw_content", None)
+        content = getattr(res, "content", "") if hasattr(res, "content") else str(res)
+        if raw_content is None:
+            raw_content = content
+            
+        _log_llm_call(self.model_id, messages, raw_content, content)
+        
         return res
 
     def _sync_counters(self):
