@@ -207,7 +207,7 @@ class _ResponseParserWrapper:
     @classmethod
     def _clean(cls, text: str) -> str:
         """Strip <think> blocks and convert markdown code fences to <code> tags."""
-        text = cls._THINK_RE.sub("", text, flags=__import__("re").DOTALL).strip()
+        text = cls._THINK_RE.sub("", text).strip()
         def _md_to_tag(m):
             return f"<code>\n{m.group(1)}\n</code>"
         text = cls._MD_CODE_RE.sub(_md_to_tag, text)
