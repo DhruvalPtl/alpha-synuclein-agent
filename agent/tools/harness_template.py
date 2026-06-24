@@ -184,6 +184,31 @@ if not callable(build_and_train):
     sys.exit(1)
 
 # ── Step 5: Call build_and_train — wrapped in try/except ─────────────────────
+# Suppress common noisy library warnings before training to keep logs clean.
+try:
+    import warnings as _warnings
+    _warnings.filterwarnings("ignore", category=UserWarning)
+    _warnings.filterwarnings("ignore", category=FutureWarning)
+    # LightGBM: suppress "No further splits" and other verbose output
+    try:
+        import lightgbm as _lgb
+        _lgb.basic._LIB.LGBM_SetLastError("")  # no-op but avoids AttributeError
+    except Exception:
+        pass
+    try:
+        import lightgbm as _lgb
+        _lgb.basic.logger.setLevel(40)  # ERROR level only
+    except Exception:
+        pass
+    # XGBoost: suppress progress output
+    try:
+        import xgboost as _xgb
+        _xgb.set_config(verbosity=0)
+    except Exception:
+        pass
+except Exception:
+    pass
+
 print("[harness] Calling build_and_train() ...")
 t0 = time.perf_counter()
 try:

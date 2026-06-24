@@ -833,10 +833,16 @@ class LLMManager:
                 k in _model_str for k in ("qwen3", "deepseek-r1", "qwq")
             )
             if _is_thinking_model:
-                kwargs["extra_body"] = {"think": False}
+                # When routing via Ollama's OpenAI-compatible /v1 endpoint (which
+                # we do), LiteLLM forwards extra_body as chat_template_kwargs.
+                # The top-level "think" key only works with Ollama's native
+                # /api/chat endpoint — it is silently ignored on /v1.
+                kwargs["extra_body"] = {
+                    "chat_template_kwargs": {"enable_thinking": False}
+                }
                 self.logger.info(
-                    f"[LLMManager] Qwen3/DeepSeek-R1 detected: think=False set in extra_body "
-                    "(disables thinking tokens at source)"
+                    "[LLMManager] Qwen3/DeepSeek-R1 detected: enable_thinking=False set "
+                    "(disables thinking tokens at source via chat_template_kwargs)"
                 )
 
         # LM Studio — OpenAI-compatible local server, no API key needed.
