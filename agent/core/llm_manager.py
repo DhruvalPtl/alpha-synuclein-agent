@@ -146,49 +146,156 @@ _GEMINI_MIN_CALL_GAP = _min_gap("gemini")
 _GEMINI_BACKOFF_DELAYS = _BACKOFF_DELAYS
 
 
-# ── Thinking-token stripper (Ollama qwen3 / deepseek-r1) ──────────────────────
-# qwen3 and deepseek-r1 emit <think>...</think> blocks before their actual reply.
-# Sometimes the model outputs ONLY a thinking block with nothing after it — this
-# causes smolagents CodeAgent to silently produce empty steps and loop forever.
+# ── Dual-model response parser (main=Qwen3.6:27B, fixer=qwen2.5:1.5b) ────────
 #
-# This wrapper:
-#   1. Strips <think>...</think> so smolagents can parse Thought:/Code: cleanly.
-#   2. When the response is thinking-only (nothing after </think>), retries the
-#      call once with an explicit nudge message asking for the action code.
-#      Thinking stays fully ENABLED — we never suppress it at source.
+# Architecture:
+#   1. Main model (big, reasoning) produces the agent response.
+#   2. Strip <think>...</think> tokens and convert markdown code blocks.
+#   3. If the response is valid (has a Thought: + <code> block) → pass through.
+#   4. If invalid (empty, thinking-only, or no code block):
+#        → call a TINY fixer model whose only job is text reformatting.
+#        → The fixer doesn't need to understand ML research; it just needs to
+#          produce "Thought: X\n<code>\nsome_code()\n</code>" from the raw text.
+#   5. If the fixer also fails → inject a safe rotating fallback action.
+#
+# Why this is better than retrying the same big model:
+#   - The big model failed because it was thinking-only or had a cold-start
+#     issue.  Retrying it with a nudge often gets the same 0-char result.
+#   - A 1.5B model responding to "reformat this as a code block" is trivially
+#     reliable, fast (~1s), and never gets confused by the agent context.
 
-class _ThinkingTokenStripper:
+class _ResponseParserWrapper:
     """
-    Transparent wrapper that strips <think>…</think> from Ollama responses
-    and auto-retries when the model forgets to output its action code.
+    Two-model pipeline: main model reasons, tiny fixer model corrects format.
+
+    Parameters
+    ----------
+    main_model      : the main LiteLLMModel (big reasoning model)
+    fixer_model_id  : Ollama model for format fixing (default: qwen2.5:1.5b)
+    fixer_api_base  : Ollama API base URL for the fixer model
     """
 
-    _THINK_RE = __import__("re").compile(r"<think>.*?</think>", __import__("re").DOTALL)
+    _THINK_RE       = __import__("re").compile(r"<think>.*?</think>", __import__("re").DOTALL)
+    _MD_CODE_RE     = __import__("re").compile(r"```(?:py|python|)\s*\n(.*?)\n\s*```", __import__("re").DOTALL)
 
-    def __init__(self, model):
-        self._model = model
-        self.model_id                  = getattr(model, "model_id", "")
-        self.last_input_token_count    = 0
-        self.last_output_token_count   = 0
-        self._consecutive_fallbacks    = 0   # reset each time model returns valid code
-        self._fallback_index           = 0   # cycles through _FALLBACK_ACTIONS
+    # Default tiny fixer model — lightweight, fast, good at instruction following
+    DEFAULT_FIXER_MODEL = "openai/qwen2.5:1.5b"
+    DEFAULT_FIXER_BASE  = "http://localhost:11434/v1"
 
-    # ── helpers ────────────────────────────────────────────────────────────────
+    # Safe rotating fallbacks when both main + fixer fail
+    _SAFE_ACTIONS = [
+        "Thought: Read the leaderboard to see what has been tried so far.\n<code>\nleaderboard = read_leaderboard(top_n=20)\nprint(leaderboard)\n</code>",
+        "Thought: Search arXiv for ML methods for small imbalanced tabular datasets.\n<code>\nresults = search_arxiv_papers('class imbalance small dataset classification', max_results=3)\nprint(results)\n</code>",
+        "Thought: Search the web for best practices for imbalanced multiclass classification.\n<code>\nresults = web_search('imbalanced multiclass classification best model small dataset')\nprint(results)\n</code>",
+        "Thought: Read the leaderboard again to plan the next experiment.\n<code>\nlb = read_leaderboard(top_n=20)\nprint(lb)\n</code>",
+    ]
+
+    def __init__(self, main_model, fixer_model_id: str = None, fixer_api_base: str = None):
+        self._model             = main_model
+        self.model_id           = getattr(main_model, "model_id", "")
+        self.last_input_token_count  = 0
+        self.last_output_token_count = 0
+        self._fixer_model_id    = fixer_model_id or self.DEFAULT_FIXER_MODEL
+        self._fixer_api_base    = fixer_api_base or self.DEFAULT_FIXER_BASE
+        self._fixer             = None      # lazy: init only on first failure
+        self._fixer_available   = True      # set False if fixer init fails
+        self._consecutive_bad   = 0         # reset on each valid response
+        self._safe_action_idx   = 0
+
+    # ── text helpers ───────────────────────────────────────────────────────────
+
+    @classmethod
+    def _clean(cls, text: str) -> str:
+        """Strip <think> blocks and convert markdown code fences to <code> tags."""
+        text = cls._THINK_RE.sub("", text, flags=__import__("re").DOTALL).strip()
+        def _md_to_tag(m):
+            return f"<code>\n{m.group(1)}\n</code>"
+        text = cls._MD_CODE_RE.sub(_md_to_tag, text)
+        return text.strip()
 
     @staticmethod
-    def _convert_md_to_code_tags(text: str) -> str:
-        import re
-        # Convert markdown code blocks like ```py or ```python or ``` to <code>...</code>
-        pattern = r"```(?:py|python|)\s*\n(.*?)\n\s*```"
-        def repl(match):
-            code_content = match.group(1)
-            return f"<code>\n{code_content}\n</code>"
-        return re.sub(pattern, repl, text, flags=re.DOTALL)
+    def _is_valid(text: str) -> bool:
+        """True if the response has a non-empty <code> block (smolagents requirement)."""
+        return "<code>" in text and len(text.strip()) >= 20
 
     @staticmethod
-    def _strip(text: str) -> str:
-        import re
-        return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+    def _is_agent_step(messages) -> bool:
+        """True if the message list looks like an agent reasoning step."""
+        if not messages:
+            return False
+        for msg in messages:
+            content = ""
+            if hasattr(msg, "content"):
+                content = str(msg.content)
+            elif isinstance(msg, dict):
+                content = str(msg.get("content", ""))
+            role = str(getattr(msg, "role", msg.get("role", "") if isinstance(msg, dict) else "")).lower()
+            if "system" in role and (
+                "autonomous ml researcher" in content.lower()
+                or "build_and_train" in content
+            ):
+                return True
+        return False
+
+    # ── fixer model ────────────────────────────────────────────────────────────
+
+    def _init_fixer(self):
+        """Lazily initialise the tiny fixer model on first failure."""
+        if self._fixer is not None:
+            return self._fixer
+        if not self._fixer_available:
+            return None
+        try:
+            from smolagents import LiteLLMModel
+            self._fixer = LiteLLMModel(
+                model_id  = self._fixer_model_id,
+                api_base  = self._fixer_api_base,
+                api_key   = "ollama",
+            )
+            print(
+                f"[Parser] Fixer model ready: {self._fixer_model_id} "
+                f"(called only when main model output is invalid)"
+            )
+            return self._fixer
+        except Exception as exc:
+            print(f"[Parser] Fixer model init failed ({exc}). Will use safe fallbacks.")
+            self._fixer_available = False
+            return None
+
+    def _call_fixer(self, raw_text: str) -> str:
+        """Ask the tiny fixer model to reformat raw_text into Thought:/code block."""
+        fixer = self._init_fixer()
+        if fixer is None:
+            return ""
+
+        fix_prompt = (
+            "You are a response formatter for an ML research agent.\n"
+            "Your ONLY job: reformat the text below into exactly this structure:\n\n"
+            "Thought: <one sentence about what action to take>\n"
+            "<code>\n"
+            "# python code that calls one of: read_leaderboard, audit_code,\n"
+            "# run_experiment, search_arxiv_papers, web_search\n"
+            "</code>\n\n"
+            "Rules:\n"
+            "- If the text contains Python code, preserve it inside <code>...</code>.\n"
+            "- If the text is empty or unclear, output a read_leaderboard call.\n"
+            "- Output NOTHING except the formatted Thought: + <code> block.\n\n"
+            f"Text to reformat:\n{raw_text or '[empty — main model produced no output]'}\n"
+        )
+
+        try:
+            from smolagents.models import ChatMessage, MessageRole
+            resp = fixer.generate([
+                ChatMessage(
+                    role=MessageRole.USER,
+                    content=[{"type": "text", "text": fix_prompt}],
+                )
+            ])
+            result = self._clean(getattr(resp, "content", "") or "")
+            return result
+        except Exception as exc:
+            print(f"[Parser] Fixer call failed: {exc}")
+            return ""
 
     # ── main call ──────────────────────────────────────────────────────────────
 
@@ -198,193 +305,60 @@ class _ThinkingTokenStripper:
     def generate(self, messages, **kwargs):
         response = self._model.generate(messages, **kwargs)
 
+        # Pass non-text responses through untouched
         if not (hasattr(response, "content") and isinstance(response.content, str)):
             self._sync_counters()
             return response
 
-        raw = response.content
-        stripped = self._strip(raw)
-        stripped = self._convert_md_to_code_tags(stripped)
+        raw      = response.content
+        cleaned  = self._clean(raw)
 
-        # Detect if this is an Agent step query. Agent queries are typically long, contain the system prompt,
-        # or list agent-specific instructions/tools. Tool queries (like ArxivTool filter) are short and task-specific.
-        is_agent_query = False
-        if messages:
-            for msg in messages:
-                role = getattr(msg, "role", None)
-                content = ""
-                if hasattr(msg, "content"):
-                    content = str(msg.content)
-                elif isinstance(msg, dict):
-                    role = msg.get("role", role)
-                    content = str(msg.get("content", ""))
-                
-                role_str = str(role).lower()
-                # If there's a system message that sets up the researcher persona or formatting instructions
-                if "system" in role_str and ("autonomous ml researcher" in content.lower() or "build_and_train" in content):
-                    is_agent_query = True
-                    break
-
-        # Check if the stripped content contains a code block or not
-        has_code_block = "<code>" in stripped
-
-        # Determine if we should nudge/retry. For agent queries, we MUST have a code block
-        # and it should have substantial content.
-        should_retry = False
-        if is_agent_query:
-            should_retry = (not has_code_block) or (len(stripped) < 20)
-
-        if not should_retry:
-            # Valid response — reset the fallback counter
-            self._consecutive_fallbacks = 0
-            self._fallback_index = 0
-            response.content = stripped
-            response.raw_content = raw
+        # Only validate format for agent reasoning steps
+        if not self._is_agent_step(messages) or self._is_valid(cleaned):
+            # Valid or not an agent step — pass through and reset counter
+            self._consecutive_bad = 0
+            response.content      = cleaned
+            response.raw_content  = raw
             self._sync_counters()
             return response
 
-        # ── thinking-only or no-code response from Agent → retry with nudge ─────────────────
+        # ── Invalid output from main model ──────────────────────────────────────
+        self._consecutive_bad += 1
         print(
-            "[ThinkingStripper] Agent output without action code block. "
-            "Retrying with nudge..."
+            f"[Parser] Main model output invalid "
+            f"(len={len(cleaned)}, has_code={'<code>' in cleaned}). "
+            f"Consecutive failures: {self._consecutive_bad}. "
+            f"Calling fixer model ({self._fixer_model_id})..."
         )
-        from smolagents.models import ChatMessage, MessageRole
 
-        # Build the retry messages.  If the model returned NOTHING (raw=""),
-        # skip appending an empty ASSISTANT turn — it confuses the model.
-        # Only echo the model's output back when there is actual content.
-        nudge_messages = list(messages)
-        if raw.strip():   # model produced some text (thinking-only, no code)
-            nudge_messages.append(
-                ChatMessage(
-                    role=MessageRole.ASSISTANT,
-                    content=[{"type": "text", "text": raw}],
-                )
-            )
-        nudge_messages.append(
-            ChatMessage(
-                role=MessageRole.USER,
-                content=[{
-                    "type": "text",
-                    "text": (
-                        "You must now output your action in exactly this format "
-                        "(nothing else):\n\n"
-                        "Thought: <one sentence>\n"
-                        "<code>\n"
-                        "# python code here\n"
-                        "</code>\n\n"
-                        "Do NOT write any thinking or prose. Output the code block NOW."
-                    ),
-                }],
-            ),
-        )
-        try:
-            response2 = self._model.generate(nudge_messages, **kwargs)
-            if hasattr(response2, "content") and isinstance(response2.content, str):
-                raw2 = response2.content
-                stripped2 = self._strip(raw2)
-                stripped2 = self._convert_md_to_code_tags(stripped2)
-                has_code_block2 = "<code>" in stripped2
-                print(
-                    f"[ThinkingStripper] Retry result: "
-                    f"raw={len(raw2)}chars  stripped={len(stripped2)}chars  has_code_block={has_code_block2}"
-                )
-                if len(stripped2) >= 20 and has_code_block2:
-                    # Retry succeeded — reset fallback counter
-                    self._consecutive_fallbacks = 0
-                    self._fallback_index = 0
-                    response2.content = stripped2
-                    response2.raw_content = raw2
-                    self._sync_counters()
-                    return response2
-                # Retry also came back thinking-only/no-code — last resort fallback
-                print("[ThinkingStripper] Retry was also invalid. Using fallback.")
-        except Exception as exc:
-            print(f"[ThinkingStripper] Retry call failed: {exc}")
+        fixed = self._call_fixer(raw)
+        if self._is_valid(fixed):
+            print(f"[Parser] Fixer succeeded. Output preview: {fixed[:80].strip()}...")
+            self._consecutive_bad = 0
+            response.content      = fixed
+            response.raw_content  = raw
+            self._sync_counters()
+            return response
 
-        # Last-resort: rotate through different safe actions so smolagents never
-        # loops forever on the same call.  After _MAX_CONSECUTIVE_FALLBACKS
-        # consecutive failures we raise so smolagents can handle the error.
-        _MAX_CONSECUTIVE_FALLBACKS = 8
-        self._consecutive_fallbacks += 1
-        if self._consecutive_fallbacks > _MAX_CONSECUTIVE_FALLBACKS:
-            self._consecutive_fallbacks = 0
-            self._fallback_index = 0
-            raise Exception(
-                "[ThinkingStripper] Model produced no valid code block for "
-                f"{_MAX_CONSECUTIVE_FALLBACKS} consecutive steps. "
-                "Forcing smolagents error recovery."
-            )
-
-        # Five rotating fallback actions — each is safe and always available.
-        _FALLBACK_ACTIONS = [
-            (
-                "Thought: Read the leaderboard to see what has been tried so far.\n"
-                "<code>\n"
-                "leaderboard = read_leaderboard(top_n=20)\n"
-                "print(leaderboard)\n"
-                "</code>"
-            ),
-            (
-                "Thought: Search arXiv for the best ML methods for small imbalanced tabular datasets.\n"
-                "<code>\n"
-                "results = search_arxiv_papers('class imbalance small dataset tabular classification', max_results=3)\n"
-                "print(results)\n"
-                "</code>"
-            ),
-            (
-                "Thought: Search the web for XGBoost vs LightGBM on imbalanced classification.\n"
-                "<code>\n"
-                "results = web_search('XGBoost LightGBM imbalanced multiclass classification best practice')\n"
-                "print(results)\n"
-                "</code>"
-            ),
-            (
-                "Thought: Audit a gradient boosting model code before running it.\n"
-                "<code>\n"
-                "_gb_code = '''\ndef build_and_train(X_train, y_train, X_val, y_val, class_weights):\n"
-                "    from sklearn.ensemble import GradientBoostingClassifier\n"
-                "    from sklearn.multiclass import OneVsRestClassifier\n"
-                "    import numpy as np\n"
-                "    sample_w = np.array([class_weights[int(y)] for y in y_train])\n"
-                "    m = GradientBoostingClassifier(n_estimators=200, max_depth=3,\n"
-                "        learning_rate=0.05, random_state=42)\n"
-                "    m.fit(X_train, y_train, sample_weight=sample_w)\n"
-                "    return m\n"
-                "'''\n"
-                "result = audit_code(_gb_code)\n"
-                "print(result)\n"
-                "</code>"
-            ),
-            (
-                "Thought: Read the leaderboard again and plan the next experiment.\n"
-                "<code>\n"
-                "lb = read_leaderboard(top_n=20)\n"
-                "print(lb)\n"
-                "</code>"
-            ),
-        ]
-
-        idx = self._fallback_index % len(_FALLBACK_ACTIONS)
-        self._fallback_index += 1
-        _fb_code = _FALLBACK_ACTIONS[idx]
-        print(
-            f"[ThinkingStripper] Injecting rotating fallback #{self._consecutive_fallbacks} "
-            f"(action {idx+1}/{len(_FALLBACK_ACTIONS)})."
-        )
-        response.content = _fb_code
-        response.raw_content = _fb_code
+        # ── Both models failed — use a safe rotating action ────────────────────
+        idx        = self._safe_action_idx % len(self._SAFE_ACTIONS)
+        self._safe_action_idx += 1
+        safe       = self._SAFE_ACTIONS[idx]
+        print(f"[Parser] Fixer also invalid. Injecting safe action {idx+1}/{len(self._SAFE_ACTIONS)}.")
+        response.content     = safe
+        response.raw_content = raw
         self._sync_counters()
         return response
 
     def _sync_counters(self):
-        self.last_input_token_count  = getattr(
-            self._model, "last_input_token_count", 0)
-        self.last_output_token_count = getattr(
-            self._model, "last_output_token_count", 0)
+        self.last_input_token_count  = getattr(self._model, "last_input_token_count",  0)
+        self.last_output_token_count = getattr(self._model, "last_output_token_count", 0)
 
     def __getattr__(self, name):
         return getattr(self._model, name)
+
+
+
 
 
 def _format_messages_for_log(messages) -> str:
@@ -862,14 +836,15 @@ class LLMManager:
         raw_model = LiteLLMModel(**kwargs)
 
         # Ollama — strip <think>...</think> tokens emitted by qwen3/deepseek-r1
-        # as a second-line defense.  The think=False extra_body above should stop
-        # qwen3 from generating them, but deepseek-r1 and other models still need
-        # this wrapper.  It also handles any model that ignores think=False.
+        # as a second-line defense.  If the model still manages to output
+        # invalid formats, the ResponseParserWrapper will lazily invoke
+        # the tiny fixer model (qwen2.5:1.5b) to format the response into
+        # a clean Thought:/Code: block.
         if provider == "ollama":
-            raw_model = _ThinkingTokenStripper(raw_model)
+            raw_model = _ResponseParserWrapper(raw_model)
             self.logger.info(
-                f"[LLMManager] Ollama: ThinkingTokenStripper applied "
-                f"(strips <think>…</think> before smolagents sees the response)"
+                f"[LLMManager] Ollama: Dual-model ResponseParserWrapper applied "
+                f"(uses tiny fixer model on failure)"
             )
 
         # Wrap with per-provider throttle for any provider that has a meaningful
