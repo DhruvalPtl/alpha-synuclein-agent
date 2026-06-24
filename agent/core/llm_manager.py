@@ -193,12 +193,6 @@ class _ThinkingTokenStripper:
         raw = response.content
         stripped = self._strip(raw)
 
-        print(
-            f"[ThinkingStripper] raw={len(raw)}chars  "
-            f"stripped={len(stripped)}chars  "
-            f"has_think={'<think>' in raw}"
-        )
-
         # Detect if this is an Agent step query. Agent queries are typically long, contain the system prompt,
         # or list agent-specific instructions/tools. Tool queries (like ArxivTool filter) are short and task-specific.
         is_agent_query = False
@@ -272,15 +266,27 @@ class _ThinkingTokenStripper:
         except Exception as exc:
             print(f"[ThinkingStripper] Retry call failed: {exc}")
 
-        # Last-resort: inject a minimal valid action so smolagents doesn't loop
-        response.content = (
-            "Thought: I need to read the leaderboard and start experimenting.\n"
+        # Last-resort: inject a concrete experiment action so smolagents makes progress
+        # instead of looping forever on read_leaderboard.
+        _fb_code = (
+            "Thought: I will run a baseline Random Forest experiment to get started.\n"
             "<code>\n"
-            "result = read_leaderboard(top_n=10)\n"
+            "import textwrap\n"
+            "model_code = textwrap.dedent(\"\"\"\n"
+            "    def build_and_train(X_train, y_train, X_val, y_val, class_weights):\n"
+            "        from sklearn.ensemble import RandomForestClassifier\n"
+            "        m = RandomForestClassifier(\n"
+            "            n_estimators=300, class_weight=\'balanced\',\n"
+            "            random_state=42, n_jobs=-1)\n"
+            "        m.fit(X_train, y_train)\n"
+            "        return m\n"
+            "\"\"\").strip()\n"
+            "result = run_experiment(exp_name=\'rf_baseline_300\', model_code=model_code)\n"
             "print(result)\n"
             "</code>"
         )
-        response.raw_content = response.content
+        response.content = _fb_code
+        response.raw_content = _fb_code
         self._sync_counters()
         return response
 

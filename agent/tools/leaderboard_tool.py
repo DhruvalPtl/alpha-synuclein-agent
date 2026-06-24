@@ -5,9 +5,8 @@ Smolagents Tool: read leaderboard.json and return formatted analysis.
 
 Provides:
   • Top-N experiments ranked by val_f1_macro
-  • Which architecture families have NOT been tried yet
-  • Performance gap analysis between families
-  • Recommendations for next experiment
+  • Per-class F1 of best experiment
+  • Performance overview across architectures tried
 
 Usage (Smolagents agent)
 ------------------------
@@ -18,7 +17,7 @@ Usage (Smolagents agent)
 Usage (direct)
 --------------
     tool = LeaderboardTool()
-    print(tool.forward(top_n=10, show_gaps=True))
+    print(tool.forward(top_n=10))
 """
 
 import json
@@ -38,18 +37,6 @@ from agent.tools.rebuild_leaderboard import rebuild_leaderboard
 
 _LEADERBOARD_PATH = Path("master_log/leaderboard.json")
 
-# All architecture families the agent should eventually explore
-ALL_FAMILIES: List[str] = [
-    "classical_ml",       # RandomForest, XGBoost, LightGBM, SVM, kNN
-    "linear",             # LogisticRegression, ElasticNet, RidgeClassifier
-    "neural_network",     # MLP with varying depth/width
-    "deep_residual",      # Deep MLP with residual connections
-    "ensemble_stack",     # Stacking / blending of diverse base models
-    "attention_based",    # Self-attention / Transformer on feature tokens
-    "graph_neural",       # GNN treating peptide as amino-acid graph
-    "automl",             # AutoSklearn, FLAML, or Optuna sweep
-]
-
 
 class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc]
     """
@@ -59,8 +46,8 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
     name        = "read_leaderboard"
     description = (
         "Read the experiment leaderboard. Returns a formatted table of the "
-        "top-N experiments by val_f1_macro, lists untried architecture "
-        "families, and highlights performance gaps. "
+        "top-N experiments by val_f1_macro, per-class F1 of the best experiment, "
+        "and an overview of all architectures tried. "
         "Use this before deciding what to try next. "
         "Input: top_n (int, default 10). "
         "Output: formatted text report."
@@ -117,7 +104,6 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
         total_runs:  int        = lb.get("total_runs", 0)
         best_f1:     float      = lb.get("best_val_f1_macro", 0.0)
         best_exp:    Optional[str] = lb.get("best_experiment")
-        tried_fams:  List[str]  = lb.get("families_completed", [])
         agent_model: str        = lb.get("agent_model_used", "unknown")
         last_updated: str       = lb.get("last_updated", "never")
 
@@ -179,64 +165,20 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
                         f"{f1:.4f}  |{bar:<30}|"
                     )
 
-        # ── Architecture family coverage ──────────────────────────────────────
-        lines.append("\n  ARCHITECTURE FAMILY COVERAGE")
-        lines.append(f"  {'Inferred Type':<22} {'Status':<12} {'Best F1':>9}")
-        lines.append("  " + "-" * 45)
-
-        family_scores: Dict[str, float] = {}
+        # ── Architectures tried so far ─────────────────────────────────────────
+        arch_scores: Dict[str, float] = {}
         for exp in experiments:
-            fam = exp.get("architecture_family", "unknown")
-            f1  = exp.get("val_f1_macro", 0.0)
-            if fam not in family_scores or f1 > family_scores[fam]:
-                family_scores[fam] = f1
+            arch = exp.get("architecture", "unknown")
+            f1   = exp.get("val_f1_macro", 0.0)
+            if arch not in arch_scores or f1 > arch_scores[arch]:
+                arch_scores[arch] = f1
 
-        for fam in ALL_FAMILIES:
-            if fam in family_scores:
-                status = "[DONE]"
-                score  = f"{family_scores[fam]:.4f}"
-            elif fam in tried_fams:
-                status = "[TRIED]"
-                score  = "0.0000"
-            else:
-                status = "[ -- ]"
-                score  = "  n/a "
-            lines.append(f"  {fam:<22} {status:<12} {score:>9}")
-
-        # Unknown families from actual experiments
-        unknown_fams = [
-            fam for fam in family_scores
-            if fam not in ALL_FAMILIES
-        ]
-        for fam in unknown_fams:
-            lines.append(
-                f"  {fam:<22} {'[EXTRA]':<12}"
-                f" {family_scores[fam]:>9.4f}"
-            )
-
-        # ── Performance gap analysis ──────────────────────────────────────────
-        done_scores = {
-            fam: sc for fam, sc in family_scores.items()
-            if fam in ALL_FAMILIES
-        }
-        untried = [f for f in ALL_FAMILIES if f not in family_scores]
-
-        lines.append("\n  UNTRIED FAMILIES (recommended next targets)")
-        if untried:
-            for fam in untried:
-                lines.append(f"    >> {fam}")
-        else:
-            lines.append("    All families have been explored!")
-
-        if done_scores:
-            best_fam   = max(done_scores, key=lambda f: done_scores[f])
-            worst_fam  = min(done_scores, key=lambda f: done_scores[f])
-            gap        = done_scores[best_fam] - done_scores[worst_fam]
-            lines.append(
-                f"\n  PERFORMANCE GAP: {gap:.4f}"
-                f"  (best={best_fam}: {done_scores[best_fam]:.4f}"
-                f"  worst={worst_fam}: {done_scores[worst_fam]:.4f})"
-            )
+        if arch_scores:
+            lines.append("\n  ARCHITECTURES TRIED (best F1 per model)")
+            lines.append(f"  {'Architecture':<40} {'Best F1':>9}")
+            lines.append("  " + "-" * 52)
+            for arch, score in sorted(arch_scores.items(), key=lambda x: -x[1]):
+                lines.append(f"  {arch:<40} {score:>9.4f}")
 
         # ── Class imbalance reminder ──────────────────────────────────────────
         lines.append("\n  [!] CLASS IMBALANCE: No=311, Med=37, High=32, Low=16")
@@ -247,8 +189,7 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
 
         self.logger.info(
             f"[LeaderboardTool] Report generated. "
-            f"total_runs={total_runs}  best_f1={best_f1:.4f}  "
-            f"untried_families={len(untried)}"
+            f"total_runs={total_runs}  best_f1={best_f1:.4f}"
         )
 
         # ── Write agent_summary.md ────────────────────────────────────────────
@@ -259,8 +200,7 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
                 total_runs=total_runs,
                 best_f1=best_f1,
                 best_exp=best_exp,
-                family_scores=family_scores,
-                untried=untried,
+                arch_scores=arch_scores,
             )
         except Exception as _md_exc:
             self.logger.warning(
@@ -278,8 +218,7 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
         total_runs: int,
         best_f1: float,
         best_exp: Optional[str],
-        family_scores: Dict[str, float],
-        untried: List[str],
+        arch_scores: Dict[str, float],
     ) -> None:
         """Write master_log/agent_summary.md with real values from leaderboard."""
         from datetime import datetime as _dt
@@ -291,20 +230,17 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
         best_data = next(
             (e for e in experiments if e.get("exp_id") == best_exp), {}
         ) if experiments else {}
-        best_arch  = best_data.get("architecture_family", "unknown")
+        best_arch  = best_data.get("architecture", "unknown")
         timestamp  = _dt.now().strftime("%Y-%m-%d %H:%M:%S")
 
         successful = sum(1 for e in experiments if e.get("status") == "success")
         failed     = sum(1 for e in experiments if e.get("status") != "success")
 
-        # Family table
-        fam_rows = ["| Family | Status | Best F1 |", "|--------|--------|---------|"]
-        for fam in ALL_FAMILIES:
-            if fam in family_scores:
-                fam_rows.append(f"| {fam} | ✅ done | {family_scores[fam]:.4f} |")
-            else:
-                fam_rows.append(f"| {fam} | — | n/a |")
-        family_table = "\n".join(fam_rows)
+        # Architectures table
+        arch_rows = ["| Architecture | Best F1 |", "|--------------|---------|"]
+        for arch, score in sorted(arch_scores.items(), key=lambda x: -x[1]):
+            arch_rows.append(f"| {arch} | {score:.4f} |")
+        arch_table = "\n".join(arch_rows) if arch_scores else "_No experiments yet._"
 
         # Recent 10 experiments table
         ranked = sorted(
@@ -313,15 +249,15 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
             reverse=True,
         )[:10]
         recent_rows = [
-            "| Exp ID | F1 Macro | Accuracy | Family | Status |",
-            "|--------|----------|----------|--------|--------|",
+            "| Exp ID | F1 Macro | Accuracy | Architecture | Status |",
+            "|--------|----------|----------|--------------|--------|",
         ]
         for e in ranked:
             recent_rows.append(
                 f"| {e.get('exp_id','?')} "
                 f"| {e.get('val_f1_macro', 0):.4f} "
                 f"| {e.get('val_accuracy', 0):.4f} "
-                f"| {e.get('architecture_family','?')} "
+                f"| {e.get('architecture','?')} "
                 f"| {e.get('status','?')} |"
             )
         recent_table = "\n".join(recent_rows) if ranked else "_No experiments yet._"
@@ -357,8 +293,8 @@ _Auto-updated after every experiment_
 - Successful: {successful}
 - Failed: {failed}
 
-## Best Per Family
-{family_table}
+## Best F1 Per Architecture
+{arch_table}
 
 ## Recent Experiments (last 10)
 {recent_table}

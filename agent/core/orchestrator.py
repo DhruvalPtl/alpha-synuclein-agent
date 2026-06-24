@@ -75,122 +75,37 @@ _AUTHORIZED_IMPORTS = [
 ]
 
 
-# ── Explore / Exploit controller ───────────────────────────────────────────────
+# ── Phase instruction helper ──────────────────────────────────────────────────
+# Simplified: no family tracking. Agent explores freely.
 
 class ExploreExploitController:
     """
-    Injects adaptive phase instructions into the agent's task prompt.
-
-    EXPLORE phase (first explore_budget experiments):
-      Monitors which architecture families have been tried consecutively.
-      If the same family appears 3+ times in a row, it explicitly demands
-      a switch and surfaces the least-tried family.
-
-    EXPLOIT phase (remaining experiments):
-      Identifies the top-N families by best val_f1_macro and encourages
-      deep tuning, ensembles, and hyperparameter search within them.
-
-    Parameters
-    ----------
-    explore_ratio  : float  — fraction of total budget to spend in explore phase
-    total_budget   : int    — total experiment budget (max_experiments)
+    Injects a simple budget-progress instruction into the agent's task prompt.
+    No family tracking — the agent decides what to explore.
     """
 
     def __init__(self, explore_ratio: float = 0.6, total_budget: int = 200) -> None:
-        self.explore_ratio  = explore_ratio
         self.explore_budget = max(1, int(total_budget * explore_ratio))
-        self.exploit_budget = max(1, total_budget - self.explore_budget)
-        self.phase: str     = "explore"
+        self.phase: str = "explore"
 
     def get_phase_instruction(self, leaderboard: dict) -> str:
-        """
-        Return a short directive string based on current leaderboard state.
-        Injected into the task prompt at each run().
-        """
         total_runs = leaderboard.get("total_runs", 0)
-        exps       = leaderboard.get("experiments", [])
-
         if total_runs < self.explore_budget:
-            return self._explore_instruction(total_runs, exps)
-        else:
-            self.phase = "exploit"
-            return self._exploit_instruction(total_runs, exps)
-
-    # ── Private helpers ────────────────────────────────────────────────────────
-
-    def _explore_instruction(self, total_runs: int, exps: list) -> str:
-        self.phase = "explore"
-        families_tried = list(dict.fromkeys(
-            e.get("architecture_family", "?") for e in exps
-        ))
-        least_tried = self._find_least_tried(exps)
-
-        # Count consecutive same-family at the tail
-        consecutive = 0
-        if exps:
-            last_fam = exps[-1].get("architecture_family", "")
-            for e in reversed(exps):
-                if e.get("architecture_family") == last_fam:
-                    consecutive += 1
-                else:
-                    break
-
-        remaining = self.explore_budget - total_runs
-        if consecutive >= 3:
+            self.phase = "explore"
+            remaining = self.explore_budget - total_runs
             return (
                 f"\n\n[EXPLORE PHASE {total_runs}/{self.explore_budget}] "
-                f"You have run {consecutive} consecutive experiments in the "
-                f"'{last_fam}' family. Switch to a DIFFERENT architecture family now. "
-                f"Least explored: {least_tried}. "
-                f"{remaining} explore-budget experiments left."
+                f"You have {remaining} exploration experiments left. "
+                f"Try a variety of different model types and approaches. "
+                f"Be creative — think beyond standard classifiers."
             )
-        return (
-            f"\n\n[EXPLORE PHASE {total_runs}/{self.explore_budget}] "
-            f"Prioritize architectures you haven't explored yet. "
-            f"Families tried: {families_tried}. "
-            f"Least explored: {least_tried}. "
-            f"{remaining} explore-budget experiments left."
-        )
-
-    def _exploit_instruction(self, total_runs: int, exps: list) -> str:
-        top_families = self._get_top_families(exps, n=3)
-        exploit_so_far = total_runs - self.explore_budget
-        remaining      = self.exploit_budget - exploit_so_far
-        return (
-            f"\n\n[EXPLOIT PHASE {exploit_so_far}/{self.exploit_budget}] "
-            f"Exploration complete. Focus on these top families: {top_families}. "
-            f"Tune hyperparameters aggressively, try ensembles of top models, "
-            f"and push these architectures to their limits. "
-            f"{max(0, remaining)} exploit-budget experiments left."
-        )
-
-    @staticmethod
-    def _find_least_tried(exps: list) -> str:
-        """Return the architecture family with the fewest experiments."""
-        from collections import Counter
-        counts = Counter(e.get("architecture_family", "?") for e in exps)
-        all_families = [
-            "classical_ml", "linear", "neural_network", "deep_residual",
-            "ensemble_stack", "attention_based", "automl",
-        ]
-        # Find families not yet tried at all first
-        for fam in all_families:
-            if fam not in counts:
-                return fam
-        # Otherwise return the one with fewest runs
-        return min(counts, key=counts.get)
-
-    @staticmethod
-    def _get_top_families(exps: list, n: int = 3) -> list:
-        """Return top-N families by best val_f1_macro."""
-        best: dict[str, float] = {}
-        for e in exps:
-            fam = e.get("architecture_family", "?")
-            f1  = e.get("val_f1_macro", 0.0)
-            if fam not in best or f1 > best[fam]:
-                best[fam] = f1
-        return sorted(best, key=best.get, reverse=True)[:n]
-
+        else:
+            self.phase = "exploit"
+            return (
+                f"\n\n[EXPLOIT PHASE] Exploration complete ({total_runs} experiments done). "
+                f"Focus on refining and ensembling the best approaches found so far. "
+                f"Tune hyperparameters aggressively."
+            )
 
 class AgentOrchestrator:
     """
@@ -542,30 +457,8 @@ class AgentOrchestrator:
                 _logger_ref  = self.logger
                 _lb_path     = _LEADERBOARD_PATH   # captured from module-level constant
 
-                _ALL_FAMILIES_GUARD = [
-                    "classical_ml", "linear", "neural_network", "deep_residual",
-                    "ensemble_stack", "attention_based", "sequence_model",
-                    "modern_tabular", "protein_embedding",
-                ]
-
-                def _get_families_tried() -> list:
-                    """Read families_completed from the live leaderboard."""
-                    try:
-                        if _lb_path.exists():
-                            lb = json.loads(_lb_path.read_text())
-                            return lb.get("families_completed", [])
-                    except Exception:
-                        pass
-                    return []
-
-                def _get_untried_families() -> list:
-                    """Return architecture families not yet in the leaderboard."""
-                    tried = _get_families_tried()
-                    return [f for f in _ALL_FAMILIES_GUARD if f not in tried]
-
                 def _guarded_final_answer(answer):
-                    runs     = _orch_ref._exp_count
-                    untried  = _get_untried_families()
+                    runs = _orch_ref._exp_count
 
                     if runs < _min_exp:
                         _logger_ref.warning(
@@ -575,17 +468,12 @@ class AgentOrchestrator:
                         print(
                             f"\n[Guard] BLOCKED: final_answer rejected -- "
                             f"{runs}/{_min_exp} experiments done. "
-                            f"Untried families: {untried}. "
                             f"Keep exploring!\n",
                             flush=True,
                         )
-                        # Raise ToolException — propagates through Python executor
-                        # as InterpreterError -> AgentExecutionError (AgentError)
-                        # -> caught by outer loop -> agent step continues.
                         raise ToolException(
                             f"Cannot conclude yet. You have run {runs} experiments "
                             f"this session but need at least {_min_exp}. "
-                            f"Families not yet tried: {untried}. "
                             f"Continue exploring -- do not call final_answer again "
                             f"until you have run {_min_exp - runs} more experiments."
                         )
@@ -621,40 +509,6 @@ class AgentOrchestrator:
                 def _guarded_run_experiment(
                     exp_name, model_code, hyperparams="{}"
                 ):
-                    # ── Read last 3 experiments from leaderboard ──────────────
-                    import json as _json, os as _os
-                    from agent.tools.experiment_runner import _infer_family
-                    lb_path = _LEADERBOARD_PATH          # module-level Path constant
-                    try:
-                        if lb_path.exists():
-                            _lb = _json.loads(lb_path.read_text())
-                            recent = _lb.get("experiments", [])[-3:]
-                            if len(recent) == 3:
-                                current_family = _infer_family(model_code)
-                                if all(e.get("architecture_family") == current_family for e in recent):
-                                    _rep_logger.warning(
-                                        f"[RepGuard] BLOCKED — last 3 experiments "
-                                        f"all were '{current_family}'. Forcing diversity."
-                                    )
-                                    print(
-                                        f"\n[RepGuard] BLOCKED: last 3 experiments "
-                                        f"all used '{current_family}'. You MUST try a genuinely "
-                                        f"different architecture before continuing.\n",
-                                        flush=True,
-                                    )
-                                    raise ToolException(
-                                        f"Exploitation detected — last 3 experiments "
-                                        f"all used '{current_family}'. You must try a genuinely "
-                                        f"different architecture before continuing. "
-                                        f"Consider: transformers, character embeddings, "
-                                        f"graph methods, or anything not in your recent "
-                                        f"history. Read leaderboard then pick something new."
-                                    )
-                    except ToolException:
-                        raise   # let the guard propagate
-                    except Exception:
-                        pass    # leaderboard not ready yet — allow experiment
-
                     # All clear — delegate to the tracked forward
                     return _tracked_fwd(exp_name, model_code, hyperparams)
 
@@ -689,18 +543,12 @@ class AgentOrchestrator:
 
         _phase_instruction = _ee_ctrl.get_phase_instruction(_lb_state)
 
-        # Build rich session context from leaderboard
+        # Build session context from leaderboard
         import os as _os
-        _ALL_FAMILIES = [
-            "classical_ml", "linear", "neural_network", "deep_residual",
-            "ensemble_stack", "attention_based", "sequence_model",
-            "modern_tabular", "protein_embedding",
-        ]
-        _tried_families  = _lb_state.get("families_completed", [])
-        _not_tried       = [f for f in _ALL_FAMILIES if f not in _tried_families]
         _best_f1         = _lb_state.get("best_val_f1_macro", 0.0)
         _best_exp        = _lb_state.get("best_experiment", "none yet")
         _total_ever      = _lb_state.get("total_runs", 0)
+
 
         _session_context = (
             f"\n\n=== THIS SESSION ==="

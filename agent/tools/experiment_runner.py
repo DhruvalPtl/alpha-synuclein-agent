@@ -384,14 +384,25 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
 
     def _update_leaderboard(self, result: Dict[str, Any]) -> None:
         """Append result to leaderboard.json and update summary fields."""
+        _LEADERBOARD_PATH.parent.mkdir(parents=True, exist_ok=True)
         if not _LEADERBOARD_PATH.exists():
-            self.logger.warning(
-                "[ExperimentRunner] leaderboard.json not found; skipping update."
+            self.logger.info(
+                "[ExperimentRunner] leaderboard.json not found — creating fresh leaderboard."
             )
-            return
+            lb = {
+                "experiments": [],
+                "total_runs": 0,
+                "best_val_f1_macro": 0.0,
+                "best_experiment": None,
+                "architectures_tried": [],
+                "families_completed": [],
+                "agent_model_used": "",
+                "last_updated": "",
+            }
+        else:
+            with open(_LEADERBOARD_PATH, "r", encoding="utf-8") as fh:
+                lb = json.load(fh)
 
-        with open(_LEADERBOARD_PATH, "r", encoding="utf-8") as fh:
-            lb = json.load(fh)
 
         summary = {
             "exp_id":               result.get("exp_id"),

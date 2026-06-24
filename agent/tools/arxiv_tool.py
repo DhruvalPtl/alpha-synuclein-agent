@@ -67,9 +67,11 @@ class ArxivTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
     description = (
         "Search arXiv for ML papers relevant to protein/peptide classification. "
         "Returns titles, abstracts, and actionable implementation ideas. "
-        "Use this every 10 experiments to discover new methods. "
+        "Use this to discover new methods — especially after hitting a plateau. "
         "Input: query string (e.g. 'peptide classification small dataset transformer'). "
-        "Optional: max_results int (default 5). "
+        "Optional: max_results int (default 3, max 10). "
+        "Optional: llm_filter bool (default False — filters for relevant papers; "
+        "note: LLM filtering is slow on local models, ~1 min per paper). "
         "Output: formatted paper summaries with implementation suggestions."
     )
     inputs = {
@@ -89,7 +91,7 @@ class ArxivTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
         },
         "llm_filter": {
             "type": "boolean",
-            "description": "Use LLM to filter only actionable papers (default True).",
+            "description": "Use LLM to filter only actionable papers (default False).",
             "nullable": True,
         },
     }
@@ -104,8 +106,8 @@ class ArxivTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
     def forward(
         self,
         query: str,
-        max_results: int = 5,
-        llm_filter: bool = True,
+        max_results: int = 3,
+        llm_filter: bool = False,
     ) -> str:
         """
         Search arXiv and return formatted, optionally LLM-filtered results.
