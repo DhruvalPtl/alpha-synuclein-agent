@@ -174,6 +174,16 @@ class _ThinkingTokenStripper:
     # ── helpers ────────────────────────────────────────────────────────────────
 
     @staticmethod
+    def _convert_md_to_code_tags(text: str) -> str:
+        import re
+        # Convert markdown code blocks like ```py or ```python or ``` to <code>...</code>
+        pattern = r"```(?:py|python|)\s*\n(.*?)\n\s*```"
+        def repl(match):
+            code_content = match.group(1)
+            return f"<code>\n{code_content}\n</code>"
+        return re.sub(pattern, repl, text, flags=re.DOTALL)
+
+    @staticmethod
     def _strip(text: str) -> str:
         import re
         return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
@@ -192,6 +202,7 @@ class _ThinkingTokenStripper:
 
         raw = response.content
         stripped = self._strip(raw)
+        stripped = self._convert_md_to_code_tags(stripped)
 
         # Detect if this is an Agent step query. Agent queries are typically long, contain the system prompt,
         # or list agent-specific instructions/tools. Tool queries (like ArxivTool filter) are short and task-specific.
@@ -212,17 +223,24 @@ class _ThinkingTokenStripper:
                     is_agent_query = True
                     break
 
-        if len(stripped) >= 20 or not is_agent_query:
-            # Normal case OR non-agent queries (like tool filters, simple prompts):
-            # return stripped content directly. We do not apply retry/fallback to simple tool prompts.
+        # Check if the stripped content contains a code block or not
+        has_code_block = "<code>" in stripped
+
+        # Determine if we should nudge/retry. For agent queries, we MUST have a code block
+        # and it should have substantial content.
+        should_retry = False
+        if is_agent_query:
+            should_retry = (not has_code_block) or (len(stripped) < 20)
+
+        if not should_retry:
             response.content = stripped
             response.raw_content = raw
             self._sync_counters()
             return response
 
-        # ── thinking-only response from Agent → retry with nudge ─────────────────
+        # ── thinking-only or no-code response from Agent → retry with nudge ─────────────────
         print(
-            "[ThinkingStripper] Agent output only thinking, no action code. "
+            "[ThinkingStripper] Agent output without action code block. "
             "Retrying with nudge..."
         )
         from smolagents.models import ChatMessage, MessageRole
@@ -252,17 +270,19 @@ class _ThinkingTokenStripper:
             if hasattr(response2, "content") and isinstance(response2.content, str):
                 raw2 = response2.content
                 stripped2 = self._strip(raw2)
+                stripped2 = self._convert_md_to_code_tags(stripped2)
+                has_code_block2 = "<code>" in stripped2
                 print(
                     f"[ThinkingStripper] Retry result: "
-                    f"raw={len(raw2)}chars  stripped={len(stripped2)}chars"
+                    f"raw={len(raw2)}chars  stripped={len(stripped2)}chars  has_code_block={has_code_block2}"
                 )
-                if len(stripped2) >= 20:
+                if len(stripped2) >= 20 and has_code_block2:
                     response2.content = stripped2
                     response2.raw_content = raw2
                     self._sync_counters()
                     return response2
-                # Retry also came back thinking-only — last resort fallback
-                print("[ThinkingStripper] Retry was also thinking-only. Using fallback.")
+                # Retry also came back thinking-only/no-code — last resort fallback
+                print("[ThinkingStripper] Retry was also invalid. Using fallback.")
         except Exception as exc:
             print(f"[ThinkingStripper] Retry call failed: {exc}")
 

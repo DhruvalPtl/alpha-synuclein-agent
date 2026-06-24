@@ -229,8 +229,12 @@ class AgentOrchestrator:
             _ollama_reminder = (
                 "\n\nIMPORTANT: Always start your response with the action block "
                 "directly. Never put any reasoning, thinking, or explanatory text "
-                "before the 'Thought:' line or 'Code:' block. "
-                "The format must be:\nThought: ...\nCode:\n```py\n...\n```"
+                "before the 'Thought:' line or '<code>' block. "
+                "The format must be:\n"
+                "Thought: <one sentence summary of what you will do>\n"
+                "<code>\n"
+                "<your python code here>\n"
+                "</code>"
             )
             self._prompt = self._prompt + _ollama_reminder
             self.logger.info(

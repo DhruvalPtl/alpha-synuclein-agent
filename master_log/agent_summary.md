@@ -5,11 +5,11 @@ _Auto-updated after every experiment_
 - **Experiment**: exp_001_laptop_rf_verify_check
 - **F1 Macro**: 0.5442
 - **Architecture**: rf_verify_check
-- **Date**: 2026-06-24 16:50:09
+- **Date**: 2026-06-24 19:00:45
 
 ## Experiments Summary
-- Total runs: 2
-- Successful: 2
+- Total runs: 3
+- Successful: 3
 - Failed: 0
 
 ## Best F1 Per Architecture
@@ -20,6 +20,7 @@ _Auto-updated after every experiment_
 ## Recent Experiments (last 10)
 | Exp ID | F1 Macro | Accuracy | Architecture | Status |
 |--------|----------|----------|--------------|--------|
+| exp_003_laptop_rf_verify_check | 0.5442 | 0.7833 | rf_verify_check | success |
 | exp_002_laptop_rf_verify_check | 0.5442 | 0.7833 | rf_verify_check | success |
 | exp_001_laptop_rf_verify_check | 0.5442 | 0.7833 | rf_verify_check | success |
 

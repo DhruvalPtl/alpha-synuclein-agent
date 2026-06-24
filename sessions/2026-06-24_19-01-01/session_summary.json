@@ -1,0 +1,10 @@
+{
+  "session_id": "2026-06-24_19-01-01",
+  "start_time": "2026-06-24T19:01:01",
+  "model_used": "groq-llama",
+  "machine_id": "laptop",
+  "end_time": "2026-06-24T19:01:04",
+  "total_experiments_this_session": 1,
+  "final_status": "completed",
+  "error_message": null
+}
