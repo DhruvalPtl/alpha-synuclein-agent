@@ -29,7 +29,7 @@ except ImportError:
         pass
 
 from agent.core.tee_logger import TeeLogger
-from agent.core.llm_manager import LLMManager, TwoBrainManager
+from agent.core.llm_manager import LLMManager, TwoBrainManager, MODELS
 from agent.core.session_manager import SessionManager
 from agent.core.concise_logger import ConciseStepReporter
 from agent.core.watchdog import RunWatchdog
@@ -215,7 +215,7 @@ class AgentOrchestrator:
         coding_model:       Optional[str] = None,   # two-brain: dedicated coder model
         two_brain:          bool = False,
         use_short_prompt:   bool = False,
-        max_steps:          int  = 500,
+        max_steps:          int  = 500,   # base default; overridden per run() as max_experiments*10
         verbosity:          str  = "concise",
         max_idle_seconds:   int  = 300,
         max_total_seconds:  int  = 3600,
@@ -230,6 +230,7 @@ class AgentOrchestrator:
         self.verbosity          = verbosity.lower()
         self.max_idle_seconds   = max_idle_seconds
         self.max_total_seconds  = max_total_seconds
+        self.max_steps          = max_steps   # stored so switch_model rebuild can reuse it
 
         # ── LLM ───────────────────────────────────────────────────────────────
         _r_model = reasoning_model or model_name
@@ -303,6 +304,24 @@ class AgentOrchestrator:
             self.logger.info("[Orchestrator] Using SHORT system prompt.")
         else:
             self._prompt = SYSTEM_PROMPT
+
+        # ── Ollama: remind the model not to emit thinking text before Code: ───
+        # qwen3-coder and deepseek-r1 can output residual reasoning text even
+        # after <think>...</think> is stripped.  The reminder reinforces the
+        # CodeAgent format so smolagents can parse the response correctly.
+        _active_provider = MODELS.get(model_name, "").split("/")[0]
+        if _active_provider == "ollama":
+            _ollama_reminder = (
+                "\n\nIMPORTANT: Always start your response with the action block "
+                "directly. Never put any reasoning, thinking, or explanatory text "
+                "before the 'Thought:' line or 'Code:' block. "
+                "The format must be:\nThought: ...\nCode:\n```py\n...\n```"
+            )
+            self._prompt = self._prompt + _ollama_reminder
+            self.logger.info(
+                "[Orchestrator] Ollama model detected: appended no-thinking "
+                "reminder to system prompt."
+            )
 
         self.model_name   = model_name
         self._stop_event  = threading.Event()
@@ -491,6 +510,21 @@ class AgentOrchestrator:
 
         # ── Minimum-experiments before final_answer is allowed ────────────────
         self._min_experiments_before_stop = int(max_experiments * 0.8)
+
+        # ── Recalculate max_steps based on max_experiments ────────────────────
+        # 10 steps per experiment gives the agent enough room to plan, write,
+        # and run each experiment without spinning forever.
+        effective_max_steps = max_experiments * 10
+        self.max_steps = effective_max_steps
+        if self._agent is not None:
+            try:
+                self._agent.max_steps = effective_max_steps
+                self.logger.info(
+                    f"[Orchestrator] max_steps set to {effective_max_steps} "
+                    f"(max_experiments={max_experiments} × 10)"
+                )
+            except Exception as _ms_exc:
+                self.logger.warning(f"[Orchestrator] Could not update max_steps: {_ms_exc}")
 
         # ── Override final_answer to block premature stopping ─────────────────
         # HOW IT WORKS (CodeAgent-specific):
@@ -828,7 +862,7 @@ class AgentOrchestrator:
             self._agent = CodeAgent(
                 tools                         = self.tools,
                 model                         = self.llm.get_model(),
-                max_steps                     = 500,
+                max_steps                     = self.max_steps,
                 verbosity_level               = _vlevel,
                 additional_authorized_imports = _AUTHORIZED_IMPORTS,
             )

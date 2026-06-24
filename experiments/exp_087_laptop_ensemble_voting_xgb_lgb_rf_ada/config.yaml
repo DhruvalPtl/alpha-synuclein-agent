@@ -1,9 +1,0 @@
-architecture_family: ensemble_stack
-exp_id: exp_087_laptop_ensemble_voting_xgb_lgb_rf_ada
-exp_name: ensemble_voting_xgb_lgb_rf_adasyn
-hyperparams:
-  n_estimators: 500
-  oversampling: ADASYN
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T16:20:53'

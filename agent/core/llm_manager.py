@@ -135,6 +135,45 @@ _GEMINI_MIN_CALL_GAP = _min_gap("gemini")
 _GEMINI_BACKOFF_DELAYS = _BACKOFF_DELAYS
 
 
+# ── Thinking-token stripper (Ollama qwen3 / deepseek-r1) ──────────────────────
+# Models like qwen3-coder and deepseek-r1 emit <think>...</think> blocks before
+# their actual reply.  smolagents CodeAgent looks for "Code:" in the content;
+# if it hits the thinking block first it gets confused and loops without running
+# any experiments.  This wrapper silently strips those tokens before the
+# response reaches smolagents.
+
+class _ThinkingTokenStripper:
+    """Transparent wrapper that strips <think>…</think> from Ollama responses."""
+
+    def __init__(self, model):
+        self._model = model
+        # Expose attributes smolagents introspects on the model object
+        self.model_id                  = getattr(model, "model_id", "")
+        self.last_input_token_count    = 0
+        self.last_output_token_count   = 0
+
+    def __call__(self, messages, **kwargs):
+        import re
+        response = self._model(messages, **kwargs)
+        if hasattr(response, "content") and isinstance(response.content, str):
+            cleaned = re.sub(
+                r"<think>.*?</think>",
+                "",
+                response.content,
+                flags=re.DOTALL,
+            ).strip()
+            response.content = cleaned
+        # Mirror token counters so LLMManager tracking still works
+        self.last_input_token_count  = getattr(
+            self._model, "last_input_token_count", 0)
+        self.last_output_token_count = getattr(
+            self._model, "last_output_token_count", 0)
+        return response
+
+    def __getattr__(self, name):
+        return getattr(self._model, name)
+
+
 
 class LLMManager:
     """
@@ -418,6 +457,15 @@ class LLMManager:
             kwargs.setdefault("api_key", "llamafile")  # server ignores it
 
         raw_model = LiteLLMModel(**kwargs)
+
+        # Ollama — strip <think>...</think> tokens emitted by qwen3/deepseek-r1
+        # BEFORE smolagents' CodeAgent tries to parse the response for "Code:".
+        if provider == "ollama":
+            raw_model = _ThinkingTokenStripper(raw_model)
+            self.logger.info(
+                f"[LLMManager] Ollama: ThinkingTokenStripper applied "
+                f"(strips <think>…</think> before smolagents sees the response)"
+            )
 
         # Wrap with per-provider throttle for any provider that has a meaningful
         # RPM limit.  Local providers (ollama, openai/llamafile/lmstudio) have

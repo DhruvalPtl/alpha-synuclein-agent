@@ -436,8 +436,72 @@ try:
     except Exception as _e:
         print(f'[viz] experiment_summary failed: {{_e}}')
 
+    # 8. Train vs Val F1 comparison
+    try:
+        _fig, _ax = plt.subplots(figsize=(8, 5))
+        _metrics = ['F1 Macro', 'Accuracy']
+        _train_vals = [
+            result.get('train_f1_macro', 0),
+            result.get('train_accuracy', 0)
+        ]
+        _val_vals = [
+            result.get('val_f1_macro', 0),
+            result.get('val_accuracy', 0)
+        ]
+        _x = range(len(_metrics))
+        _w = 0.35
+        _ax.bar([i - _w/2 for i in _x], _train_vals, _w,
+                label='Train', color='steelblue')
+        _ax.bar([i + _w/2 for i in _x], _val_vals, _w,
+                label='Val', color='coral')
+        _ax.set_xticks(list(_x))
+        _ax.set_xticklabels(_metrics)
+        _ax.set_ylim(0, 1)
+        _ax.legend()
+        _ax.set_title('Train vs Validation Metrics')
+        plt.tight_layout()
+        plt.savefig(_plots_dir / 'train_val_comparison.png', dpi=150)
+        plt.close()
+    except Exception as _e:
+        print(f'[viz] train_val_comparison failed: {{_e}}')
+
+    # 9. ROC curve (one-vs-rest per class)
+    try:
+        from sklearn.preprocessing import label_binarize
+        from sklearn.metrics import roc_curve, auc
+        _y_bin = label_binarize(y_val, classes=[0, 1, 2, 3])
+        if y_pred_proba is not None and _y_bin.shape[1] == 4:
+            _fig, _ax = plt.subplots(figsize=(8, 6))
+            for _i, _cn in enumerate(_class_names):
+                _fpr, _tpr, _ = roc_curve(_y_bin[:, _i],
+                                           y_pred_proba[:, _i])
+                _auc_score = auc(_fpr, _tpr)
+                _ax.plot(_fpr, _tpr,
+                        label=f'{{_cn}} (AUC={{_auc_score:.2f}})')
+            _ax.plot([0,1],[0,1],'k--')
+            _ax.set_xlabel('False Positive Rate')
+            _ax.set_ylabel('True Positive Rate')
+            _ax.set_title('ROC Curves (One-vs-Rest)')
+            _ax.legend()
+            plt.tight_layout()
+            plt.savefig(_plots_dir / 'roc_curves.png', dpi=150)
+            plt.close()
+    except Exception as _e:
+        print(f'[viz] roc_curves failed: {{_e}}')
+
     print(f'[viz] plots saved to {{_plots_dir}}')
 
 except Exception as _e:
     print(f'[viz] visualization skipped: {{_e}}')
+
+# Save fitted model to artifacts/
+try:
+    import pickle as _pickle
+    _artifacts_dir = _Path(__file__).parent / 'artifacts'
+    _artifacts_dir.mkdir(exist_ok=True)
+    with open(_artifacts_dir / 'model.pkl', 'wb') as _f:
+        _pickle.dump(model, _f)
+    print(f'[harness] model saved to artifacts/model.pkl')
+except Exception as _e:
+    print(f'[harness] model save failed: {{_e}}')
 '''

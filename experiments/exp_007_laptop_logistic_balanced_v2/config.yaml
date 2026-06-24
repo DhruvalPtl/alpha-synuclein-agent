@@ -1,9 +1,0 @@
-architecture_family: linear
-exp_id: exp_007_laptop_logistic_balanced_v2
-exp_name: logistic_balanced_v2
-hyperparams:
-  class_weight: balanced
-  solver: lbfgs
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T11:45:25'

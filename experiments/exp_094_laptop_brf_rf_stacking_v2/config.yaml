@@ -1,9 +1,0 @@
-architecture_family: ensemble_stack
-exp_id: exp_094_laptop_brf_rf_stacking_v2
-exp_name: brf_rf_stacking_v2
-hyperparams:
-  n_estimators: 500
-  stacking: brf_rf
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T16:26:35'

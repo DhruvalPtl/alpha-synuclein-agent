@@ -1,9 +1,0 @@
-architecture_family: ensemble_stack
-exp_id: exp_088_laptop_stacking_xgb_lgb_gbc_smote
-exp_name: stacking_xgb_lgb_gbc_smote
-hyperparams:
-  n_estimators: 300
-  strategy: stacking_smote
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T16:21:24'

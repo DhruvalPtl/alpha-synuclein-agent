@@ -204,6 +204,22 @@ class ArxivTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
         self.logger.agent(
             f"[ArxivTool] Report ready: {len(results)} actionable papers."
         )
+
+        # ── Log search to master_log/agent_search_history.jsonl ───────────────
+        try:
+            from agent.tools.search_logger import log_search
+            _log_results = [
+                {"title": p.get("title", ""), "url": p.get("url", ""),
+                 "suggestion": p.get("suggestion", "")}
+                for p in results
+            ]
+            log_search(query=query, source="arxiv",
+                       results=_log_results, exp_context="")
+        except Exception as _log_exc:
+            self.logger.warning(
+                f"[ArxivTool] search_logger failed (non-fatal): {_log_exc}"
+            )
+
         return report
 
     # ── Private helpers ────────────────────────────────────────────────────────

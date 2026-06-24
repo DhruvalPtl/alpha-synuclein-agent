@@ -1,9 +1,0 @@
-architecture_family: ensemble_stack
-exp_id: exp_095_laptop_hist_gbc_v1
-exp_name: hist_gbc_v1
-hyperparams:
-  learning_rate: 0.05
-  max_iter: 1000
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T16:27:07'

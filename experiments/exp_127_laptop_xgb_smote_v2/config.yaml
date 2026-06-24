@@ -1,9 +1,0 @@
-architecture_family: classical_ml
-exp_id: exp_127_laptop_xgb_smote_v2
-exp_name: xgb_smote_v2
-hyperparams:
-  max_depth: 5
-  sampling: SMOTE
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T16:38:22'

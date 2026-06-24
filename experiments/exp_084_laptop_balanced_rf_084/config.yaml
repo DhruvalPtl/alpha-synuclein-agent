@@ -1,9 +1,0 @@
-architecture_family: classical_ml
-exp_id: exp_084_laptop_balanced_rf_084
-exp_name: balanced_rf_084
-hyperparams:
-  n_estimators: 500
-  sampling_strategy: all
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T12:13:46'

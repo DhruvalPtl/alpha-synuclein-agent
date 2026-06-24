@@ -250,4 +250,123 @@ class LeaderboardTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignor
             f"total_runs={total_runs}  best_f1={best_f1:.4f}  "
             f"untried_families={len(untried)}"
         )
+
+        # ── Write agent_summary.md ────────────────────────────────────────────
+        try:
+            self._write_summary_md(
+                lb=lb,
+                experiments=experiments,
+                total_runs=total_runs,
+                best_f1=best_f1,
+                best_exp=best_exp,
+                family_scores=family_scores,
+                untried=untried,
+            )
+        except Exception as _md_exc:
+            self.logger.warning(
+                f"[LeaderboardTool] agent_summary.md write failed: {_md_exc}"
+            )
+
         return report
+
+    # ── Private helpers ────────────────────────────────────────────────────────
+
+    def _write_summary_md(
+        self,
+        lb: Dict[str, Any],
+        experiments: List[Dict],
+        total_runs: int,
+        best_f1: float,
+        best_exp: Optional[str],
+        family_scores: Dict[str, float],
+        untried: List[str],
+    ) -> None:
+        """Write master_log/agent_summary.md with real values from leaderboard."""
+        from datetime import datetime as _dt
+
+        summary_path = Path("master_log/agent_summary.md")
+        summary_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Best experiment details
+        best_data = next(
+            (e for e in experiments if e.get("exp_id") == best_exp), {}
+        ) if experiments else {}
+        best_arch  = best_data.get("architecture_family", "unknown")
+        timestamp  = _dt.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        successful = sum(1 for e in experiments if e.get("status") == "success")
+        failed     = sum(1 for e in experiments if e.get("status") != "success")
+
+        # Family table
+        fam_rows = ["| Family | Status | Best F1 |", "|--------|--------|---------|"]
+        for fam in ALL_FAMILIES:
+            if fam in family_scores:
+                fam_rows.append(f"| {fam} | ✅ done | {family_scores[fam]:.4f} |")
+            else:
+                fam_rows.append(f"| {fam} | — | n/a |")
+        family_table = "\n".join(fam_rows)
+
+        # Recent 10 experiments table
+        ranked = sorted(
+            experiments,
+            key=lambda e: e.get("timestamp", ""),
+            reverse=True,
+        )[:10]
+        recent_rows = [
+            "| Exp ID | F1 Macro | Accuracy | Family | Status |",
+            "|--------|----------|----------|--------|--------|",
+        ]
+        for e in ranked:
+            recent_rows.append(
+                f"| {e.get('exp_id','?')} "
+                f"| {e.get('val_f1_macro', 0):.4f} "
+                f"| {e.get('val_accuracy', 0):.4f} "
+                f"| {e.get('architecture_family','?')} "
+                f"| {e.get('status','?')} |"
+            )
+        recent_table = "\n".join(recent_rows) if ranked else "_No experiments yet._"
+
+        # Last 5 searches
+        try:
+            from agent.tools.search_logger import get_search_history
+            searches = get_search_history(last_n=5)
+            if searches:
+                search_lines = []
+                for s in searches:
+                    search_lines.append(
+                        f"- **[{s.get('source','?')}]** `{s.get('query','')}` "
+                        f"({s.get('num_results', 0)} results, {s.get('timestamp','')[:16]})"
+                    )
+                last_5_searches = "\n".join(search_lines)
+            else:
+                last_5_searches = "_No searches logged yet._"
+        except Exception:
+            last_5_searches = "_search_logger unavailable._"
+
+        md = f"""# Alpha-Synuclein Agent — Research Summary
+_Auto-updated after every experiment_
+
+## Current Best
+- **Experiment**: {best_exp or 'none yet'}
+- **F1 Macro**: {best_f1:.4f}
+- **Architecture**: {best_arch}
+- **Date**: {timestamp}
+
+## Experiments Summary
+- Total runs: {total_runs}
+- Successful: {successful}
+- Failed: {failed}
+
+## Best Per Family
+{family_table}
+
+## Recent Experiments (last 10)
+{recent_table}
+
+## Agent Search History
+{last_5_searches}
+"""
+        summary_path.write_text(md, encoding="utf-8")
+        self.logger.info(
+            f"[LeaderboardTool] agent_summary.md written to {summary_path}"
+        )

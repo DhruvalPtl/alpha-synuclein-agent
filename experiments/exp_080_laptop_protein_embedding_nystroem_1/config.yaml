@@ -1,8 +1,0 @@
-architecture_family: protein_embedding
-exp_id: exp_080_laptop_protein_embedding_nystroem_1
-exp_name: protein_embedding_nystroem_1
-hyperparams:
-  iter: 1
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T12:12:33'

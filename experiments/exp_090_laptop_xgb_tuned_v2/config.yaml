@@ -1,9 +1,0 @@
-architecture_family: classical_ml
-exp_id: exp_090_laptop_xgb_tuned_v2
-exp_name: xgb_tuned_v2
-hyperparams:
-  learning_rate: 0.03
-  n_estimators: 600
-machine_id: laptop
-splits_dir: D:\3rd sem M.tech\agent_workspace\data\splits
-timestamp: '2026-06-23T16:24:35'
