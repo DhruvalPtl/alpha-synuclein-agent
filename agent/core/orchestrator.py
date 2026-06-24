@@ -72,6 +72,7 @@ _AUTHORIZED_IMPORTS = [
     "pickle",
     "yaml",
     "joblib",
+    "textwrap",
 ]
 
 
@@ -766,7 +767,6 @@ class AgentOrchestrator:
             "total_runs":      lb.get("total_runs", 0),
             "best_val_f1":     lb.get("best_val_f1_macro", 0.0),
             "best_experiment": lb.get("best_experiment"),
-            "families_done":   lb.get("families_completed", []),
             "elapsed":         self._elapsed() if self._running else None,
         }
 
@@ -813,12 +813,11 @@ class AgentOrchestrator:
             status = e.get("status", "?")
             f1     = e.get("val_f1_macro", 0.0)
             arch   = e.get("architecture", "?")
-            family = e.get("architecture_family", "?")
             pc     = e.get("val_f1_per_class", {})
             pc_str = " ".join(
                 f"{k}={float(v):.3f}" for k, v in sorted(pc.items(), key=lambda x: str(x[0]))
             )
-            exp_lines.append(f"  - {arch} ({family}): f1={f1:.4f} [{status}] {pc_str}")
+            exp_lines.append(f"  - {arch}: f1={f1:.4f} [{status}] {pc_str}")
 
         summarise_prompt = (
             "You are summarising ML experiment history for an autonomous research agent.\n"

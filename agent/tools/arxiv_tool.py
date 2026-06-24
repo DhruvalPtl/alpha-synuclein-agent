@@ -70,7 +70,7 @@ class ArxivTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
         "Use this to discover new methods — especially after hitting a plateau. "
         "Input: query string (e.g. 'peptide classification small dataset transformer'). "
         "Optional: max_results int (default 3, max 10). "
-        "Optional: llm_filter bool (default False — filters for relevant papers; "
+        "Optional: llm_filter bool (default True — filters for relevant papers; "
         "note: LLM filtering is slow on local models, ~1 min per paper). "
         "Output: formatted paper summaries with implementation suggestions."
     )
@@ -91,7 +91,7 @@ class ArxivTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
         },
         "llm_filter": {
             "type": "boolean",
-            "description": "Use LLM to filter only actionable papers (default False).",
+            "description": "Use LLM to filter only actionable papers (default True).",
             "nullable": True,
         },
     }
@@ -107,7 +107,7 @@ class ArxivTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: ignore[misc
         self,
         query: str,
         max_results: int = 3,
-        llm_filter: bool = False,
+        llm_filter: bool = True,
     ) -> str:
         """
         Search arXiv and return formatted, optionally LLM-filtered results.

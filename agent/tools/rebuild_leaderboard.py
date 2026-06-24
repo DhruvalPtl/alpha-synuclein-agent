@@ -37,7 +37,7 @@ _LEADERBOARD_PATH = Path("master_log/leaderboard.json")
 
 # Required fields that every results.json must have
 _REQUIRED_FIELDS = {
-    "exp_id", "architecture", "architecture_family",
+    "exp_id", "architecture",
     "val_f1_macro", "val_accuracy", "status",
 }
 
@@ -100,7 +100,6 @@ def rebuild_leaderboard(
             "exp_id":               result.get("exp_id", "?"),
             "machine_id":           result.get("machine_id", "unknown"),
             "architecture":         result.get("architecture", "?"),
-            "architecture_family":  result.get("architecture_family", "?"),
             "val_f1_macro":         float(result.get("val_f1_macro", 0.0)),
             "val_accuracy":         float(result.get("val_accuracy", 0.0)),
             "val_f1_per_class":     result.get("val_f1_per_class", {}),
@@ -138,10 +137,7 @@ def rebuild_leaderboard(
         mid = e["machine_id"]
         machines[mid] = machines.get(mid, 0) + 1
 
-    # Architecture families seen
-    families_done = sorted(set(
-        e["architecture_family"] for e in successful
-    ))
+    # Architectures tried
     architectures_tried = sorted(set(
         e["architecture"] for e in experiments
     ))
@@ -154,7 +150,6 @@ def rebuild_leaderboard(
         "total_skipped":        skipped,
         "best_val_f1_macro":    best_f1,
         "best_experiment":      best_exp,
-        "families_completed":   families_done,
         "architectures_tried":  architectures_tried,
         "runs_per_machine":     machines,
         "last_updated":         datetime.datetime.now().isoformat(timespec="seconds"),

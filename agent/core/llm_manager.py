@@ -287,21 +287,17 @@ class _ThinkingTokenStripper:
             print(f"[ThinkingStripper] Retry call failed: {exc}")
 
         # Last-resort: inject a concrete experiment action so smolagents makes progress
-        # instead of looping forever on read_leaderboard.
+        # instead of looping forever. NOTE: no textwrap -- it may be blocked.
+        _mc = "def build_and_train(X_train, y_train, X_val, y_val, class_weights):\n"
+        _mc += "    from sklearn.ensemble import RandomForestClassifier\n"
+        _mc += "    m = RandomForestClassifier(n_estimators=300, class_weight='balanced', random_state=42, n_jobs=-1)\n"
+        _mc += "    m.fit(X_train, y_train)\n"
+        _mc += "    return m\n"
         _fb_code = (
-            "Thought: I will run a baseline Random Forest experiment to get started.\n"
+            "Thought: Run a baseline RF experiment.\n"
             "<code>\n"
-            "import textwrap\n"
-            "model_code = textwrap.dedent(\"\"\"\n"
-            "    def build_and_train(X_train, y_train, X_val, y_val, class_weights):\n"
-            "        from sklearn.ensemble import RandomForestClassifier\n"
-            "        m = RandomForestClassifier(\n"
-            "            n_estimators=300, class_weight=\'balanced\',\n"
-            "            random_state=42, n_jobs=-1)\n"
-            "        m.fit(X_train, y_train)\n"
-            "        return m\n"
-            "\"\"\").strip()\n"
-            "result = run_experiment(exp_name=\'rf_baseline_300\', model_code=model_code)\n"
+            "model_code = " + repr(_mc) + "\n"
+            "result = run_experiment(exp_name='rf_baseline_300', model_code=model_code)\n"
             "print(result)\n"
             "</code>"
         )

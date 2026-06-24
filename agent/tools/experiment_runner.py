@@ -176,8 +176,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
     ) -> str:
         """Execute the experiment and return a formatted results string."""
 
-        architecture_family = _infer_family(model_code)
-
         # ── 1. Resolve experiment ID ──────────────────────────────────────────
         machine_id = _get_machine_id()
         exp_id     = self._next_exp_id(machine_id, exp_name)
@@ -187,7 +185,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
 
         self.logger.agent(
             f"[ExperimentRunner] Starting {exp_id}: {exp_name}"
-            f" (family={architecture_family})"
         )
         self.logger.set_experiment_log(str(exp_dir / "run.log"))
 
@@ -206,7 +203,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
         harness_src = HARNESS_CODE.format(
             exp_id              = exp_id,
             architecture        = exp_name,
-            architecture_family = architecture_family,
             timestamp           = timestamp,
             hyperparams_json    = json.dumps(hp_dict),
         )
@@ -217,7 +213,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
             "exp_id":               exp_id,
             "exp_name":             exp_name,
             "machine_id":           machine_id,
-            "architecture_family":  architecture_family,
             "hyperparams":          hp_dict,
             "timestamp":            timestamp,
             "splits_dir":           str(_SPLITS_DIR.resolve()),
@@ -234,7 +229,7 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
                 f"[ExperimentRunner] AUDIT FAILED for {exp_id}:\n{audit_result}"
             )
             error_result = _build_error_result(
-                exp_id, exp_name, architecture_family, machine_id,
+                exp_id, exp_name, machine_id,
                 hp_dict, timestamp,
                 f"AUDIT FAILED: {audit_result}",
             )
@@ -260,7 +255,7 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
                 f"[ExperimentRunner] results.json missing after harness run for {exp_id}"
             )
             error_result = _build_error_result(
-                exp_id, exp_name, architecture_family, machine_id,
+                exp_id, exp_name, machine_id,
                 hp_dict, timestamp,
                 f"results.json not written — harness exit_ok={ok}\n{output[-2000:]}",
             )
@@ -276,7 +271,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
         result.setdefault("machine_id",           machine_id)
         result.setdefault("timestamp",            timestamp)
         result.setdefault("architecture",         exp_name)
-        result.setdefault("architecture_family",  architecture_family)
         result.setdefault("hyperparams",          hp_dict)
         result.setdefault("train_time_seconds",   round(elapsed, 2))
         result.setdefault("model_params_count",   0)
@@ -448,27 +442,6 @@ class ExperimentRunnerTool(Tool if _SMOLAGENTS_AVAILABLE else object):  # type: 
 
 # ── Module-level helpers ───────────────────────────────────────────────────────
 
-def _infer_family(model_code: str) -> str:
-    code = model_code.lower()
-    if any(k in code for k in ["transformer", "attention", "rope"]):
-        return "attention"
-    if any(k in code for k in ["lstm", "gru", "rnn", "conv1d"]):
-        return "sequence"
-    if any(k in code for k in ["embedding", "char", "token"]):
-        return "embedding"
-    if any(k in code for k in ["xgb", "lgbm", "lightgbm", 
-                                 "catboost", "gradient"]):
-        return "boosting"
-    if any(k in code for k in ["torch", "nn.module", "neural", 
-                                 "mlp", "dense"]):
-        return "neural"
-    if any(k in code for k in ["forest", "tree", "bagging", 
-                                 "extra"]):
-        return "tree_ensemble"
-    if any(k in code for k in ["logistic", "svm", "svc", 
-                                 "linear", "ridge"]):
-        return "linear"
-    return "other"
 
 def _sanitize(name: str) -> str:
     """Convert to safe folder-name characters."""
@@ -491,7 +464,6 @@ def _get_machine_id() -> str:
 def _build_error_result(
     exp_id:              str,
     architecture:        str,
-    architecture_family: str,
     machine_id:          str,
     hyperparams:         Dict,
     timestamp:           str,
@@ -502,7 +474,6 @@ def _build_error_result(
         "machine_id":           machine_id,
         "timestamp":            timestamp,
         "architecture":         architecture,
-        "architecture_family":  architecture_family,
         "hyperparams":          hyperparams,
         "val_accuracy":         0.0,
         "val_f1_macro":         0.0,
@@ -520,13 +491,13 @@ def _format_result_compact(result: Dict[str, Any]) -> str:
     Compact one-liner returned TO THE AGENT (~80 tokens).
     Keeps context window small — no ASCII bars, no decorations.
     Format:
-      exp_NNN | arch_name | family | val_f1_macro=X.XXXX | No=X.XXX Low=X.XXX Med=X.XXX High=X.XXX | Xs
+    Format:
+      exp_NNN | arch_name | val_f1_macro=X.XXXX | No=X.XXX Low=X.XXX Med=X.XXX High=X.XXX | Xs
     On failure:
       exp_NNN | arch_name | FAILED | <first 200 chars of error>
     """
     exp_id  = result.get("exp_id", "?")
     arch    = result.get("architecture", "?")
-    family  = result.get("architecture_family", "?")
     status  = result.get("status", "?")
 
     if status == "success":
@@ -540,7 +511,7 @@ def _format_result_compact(result: Dict[str, Any]) -> str:
             for k, v in sorted(pc.items(), key=lambda x: str(x[0]))
         )
         return (
-            f"{exp_id} | {arch} | {family} | "
+            f"{exp_id} | {arch} | "
             f"val_f1_macro={f1:.4f} | {per_cls} | {t:.1f}s"
         )
     else:
@@ -558,7 +529,6 @@ def _format_result_verbose(result: Dict[str, Any]) -> str:
         "=" * 62,
         f"  EXPERIMENT : {result.get('exp_id')}",
         f"  Arch       : {result.get('architecture')}",
-        f"  Family     : {result.get('architecture_family')}",
         f"  Machine    : {result.get('machine_id', '?')}",
         f"  Status     : {result.get('status')}",
         "=" * 62,

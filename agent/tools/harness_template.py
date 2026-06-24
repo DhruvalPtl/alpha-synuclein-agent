@@ -38,7 +38,6 @@ HARNESS_CODE: str = '''#!/usr/bin/env python3
 train_eval.py  —  FIXED harness (not LLM-generated)
 Experiment: {exp_id}
 Architecture: {architecture}
-Family: {architecture_family}
 """
 import importlib.util
 import json
@@ -77,7 +76,6 @@ _RESULTS_JSON    = _EXP_DIR / "results.json"
 # ── Metadata (filled by ExperimentRunner template substitution) ───────────────
 EXP_ID               = "{exp_id}"
 ARCHITECTURE         = "{architecture}"
-ARCHITECTURE_FAMILY  = "{architecture_family}"
 TIMESTAMP            = "{timestamp}"
 HYPERPARAMS: dict = __import__('json').loads('{hyperparams_json}')
 
@@ -99,7 +97,6 @@ def _build_error_result(error_msg: str, train_time: float = 0.0) -> dict:
         "exp_id":               EXP_ID,
         "machine_id":           os.environ.get("MACHINE_ID", ""),
         "architecture":         ARCHITECTURE,
-        "architecture_family":  ARCHITECTURE_FAMILY,
         "hyperparams":          HYPERPARAMS,
         "timestamp":            TIMESTAMP,
         "val_accuracy":         0.0,
@@ -260,7 +257,6 @@ result = {{
     "exp_id":               EXP_ID,
     "machine_id":           os.environ.get("MACHINE_ID", ""),
     "architecture":         ARCHITECTURE,
-    "architecture_family":  ARCHITECTURE_FAMILY,
     "hyperparams":          HYPERPARAMS,
     "timestamp":            TIMESTAMP,
     "val_accuracy":         round(val_acc,  6),
@@ -340,7 +336,7 @@ try:
         plt.savefig(_plots_dir / 'prediction_distribution.png', dpi=150)
         plt.close()
     except Exception as _e:
-        print(f'[viz] prediction_distribution failed: {{_e}}')
+        print(f'[viz] prediction_distribution failed: {_e}')
 
     # 4. Leaderboard trend
     try:
@@ -361,30 +357,6 @@ try:
             plt.close()
     except Exception as _e:
         print(f'[viz] f1_leaderboard_trend failed: {{_e}}')
-
-    # 5. Family comparison
-    try:
-        if _lb_path.exists():
-            _lb = _json.load(open(_lb_path))
-            _fam_best = {{}}
-            for _e in _lb.get('experiments', []):
-                _fam = _e.get('inferred_type', _e.get('architecture_family', 'other'))
-                _f1v = _e.get('val_f1_macro', 0)
-                if _fam not in _fam_best or _f1v > _fam_best[_fam]:
-                    _fam_best[_fam] = _f1v
-            _fams = list(_fam_best.keys())
-            _vals = [_fam_best[f] for f in _fams]
-            _fig, _ax = plt.subplots(figsize=(10, 5))
-            _colors = ['red' if f == result.get('inferred_type','') 
-                      else 'steelblue' for f in _fams]
-            _ax.barh(_fams, _vals, color=_colors)
-            _ax.set_xlabel('Best F1 Macro')
-            _ax.set_title('Best F1 per Architecture Family')
-            plt.tight_layout()
-            plt.savefig(_plots_dir / 'family_comparison.png', dpi=150)
-            plt.close()
-    except Exception as _e:
-        print(f'[viz] family_comparison failed: {{_e}}')
 
     # 6. Feature importance (if available)
     try:
