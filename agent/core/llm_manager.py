@@ -199,15 +199,31 @@ class _ThinkingTokenStripper:
             f"has_think={'<think>' in raw}"
         )
 
-        if len(stripped) >= 20:
-            # Normal case — thinking block + action code present
+        # Detect if this is an Agent step query. Agent queries are typically long, contain the system prompt,
+        # or list agent-specific instructions/tools. Tool queries (like ArxivTool filter) are short and task-specific.
+        is_agent_query = False
+        if messages:
+            # Check the first system/user message content
+            first_msg = messages[0]
+            first_content = ""
+            if isinstance(first_msg, dict):
+                first_content = str(first_msg.get("content", ""))
+            elif hasattr(first_msg, "content"):
+                first_content = str(first_msg.content)
+            
+            if "You are an autonomous ML researcher" in first_content or "final_answer" in first_content:
+                is_agent_query = True
+
+        if len(stripped) >= 20 or not is_agent_query:
+            # Normal case OR non-agent queries (like tool filters, simple prompts):
+            # return stripped content directly. We do not apply retry/fallback to simple tool prompts.
             response.content = stripped
             self._sync_counters()
             return response
 
-        # ── thinking-only response → retry with nudge ─────────────────────────
+        # ── thinking-only response from Agent → retry with nudge ─────────────────
         print(
-            "[ThinkingStripper] Model output only thinking, no action code. "
+            "[ThinkingStripper] Agent output only thinking, no action code. "
             "Retrying with nudge..."
         )
         from smolagents.models import ChatMessage, MessageRole
