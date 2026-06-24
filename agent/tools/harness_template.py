@@ -336,7 +336,7 @@ try:
         plt.savefig(_plots_dir / 'prediction_distribution.png', dpi=150)
         plt.close()
     except Exception as _e:
-        print(f'[viz] prediction_distribution failed: {_e}')
+        print(f'[viz] prediction_distribution failed: {{_e}}')
 
     # 4. Leaderboard trend
     try:

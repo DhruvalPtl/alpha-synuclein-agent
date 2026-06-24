@@ -286,21 +286,18 @@ class _ThinkingTokenStripper:
         except Exception as exc:
             print(f"[ThinkingStripper] Retry call failed: {exc}")
 
-        # Last-resort: inject a concrete experiment action so smolagents makes progress
-        # instead of looping forever. NOTE: no textwrap -- it may be blocked.
-        _mc = "def build_and_train(X_train, y_train, X_val, y_val, class_weights):\n"
-        _mc += "    from sklearn.ensemble import RandomForestClassifier\n"
-        _mc += "    m = RandomForestClassifier(n_estimators=300, class_weight='balanced', random_state=42, n_jobs=-1)\n"
-        _mc += "    m.fit(X_train, y_train)\n"
-        _mc += "    return m\n"
+        # Last-resort: inject a safe read_leaderboard call so smolagents makes
+        # *some* forward progress (reads context) without hitting the repetition
+        # guard.  A hardcoded experiment type (e.g. RF) would get permanently
+        # blocked after 3 consecutive calls and cause an infinite loop.
         _fb_code = (
-            "Thought: Run a baseline RF experiment.\n"
+            "Thought: Read the leaderboard to understand what has been tried so far.\n"
             "<code>\n"
-            "model_code = " + repr(_mc) + "\n"
-            "result = run_experiment(exp_name='rf_baseline_300', model_code=model_code)\n"
-            "print(result)\n"
+            "leaderboard = read_leaderboard(top_n=20)\n"
+            "print(leaderboard)\n"
             "</code>"
         )
+        print("[ThinkingStripper] Injecting safe fallback: read_leaderboard.")
         response.content = _fb_code
         response.raw_content = _fb_code
         self._sync_counters()
