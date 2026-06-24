@@ -270,6 +270,64 @@ class _ThinkingTokenStripper:
         return getattr(self._model, name)
 
 
+def _standardize_messages(messages):
+    """
+    Ensure all messages in the list are ChatMessage objects or dicts
+    where 'content' is formatted as a list of dicts: [{'type': 'text', 'text': ...}]
+    This avoids crashes in smolagents' get_clean_message_list when flatten_messages_as_text=True.
+    """
+    from smolagents.models import ChatMessage, MessageRole
+    new_messages = []
+    for msg in messages:
+        # Standardize dict to ChatMessage
+        if isinstance(msg, dict):
+            role_val = msg.get("role", "user")
+            content_val = msg.get("content", "")
+            tool_calls_val = msg.get("tool_calls", None)
+            
+            # Coerce role to MessageRole enum if possible
+            try:
+                role = MessageRole(role_val)
+            except ValueError:
+                role = MessageRole.USER
+                
+            msg = ChatMessage(role=role, content=content_val, tool_calls=tool_calls_val)
+            
+        # Coerce content to list of dicts if it is a string
+        if isinstance(msg, ChatMessage):
+            if isinstance(msg.content, str):
+                msg.content = [{"type": "text", "text": msg.content}]
+            elif msg.content is None:
+                msg.content = [{"type": "text", "text": ""}]
+                
+        new_messages.append(msg)
+    return new_messages
+
+
+class _MessageStandardizer:
+    """Transparent proxy that standardizes incoming message content formats before calling the LLM."""
+    def __init__(self, model):
+        self._model = model
+        self.model_id = getattr(model, "model_id", "")
+        self.last_input_token_count = 0
+        self.last_output_token_count = 0
+
+    def __call__(self, messages, **kwargs):
+        return self.generate(messages, **kwargs)
+
+    def generate(self, messages, **kwargs):
+        messages = _standardize_messages(messages)
+        res = self._model.generate(messages, **kwargs)
+        self._sync_counters()
+        return res
+
+    def _sync_counters(self):
+        self.last_input_token_count  = getattr(self._model, "last_input_token_count", 0)
+        self.last_output_token_count = getattr(self._model, "last_output_token_count", 0)
+
+    def __getattr__(self, name):
+        return getattr(self._model, name)
+
 
 class LLMManager:
     """
@@ -573,6 +631,9 @@ class LLMManager:
             self._model = self._wrap_provider_throttle(raw_model, provider, gap)
         else:
             self._model = raw_model
+
+        # Apply message standardizer as the outermost layer to prevent smolagents format crashes
+        self._model = _MessageStandardizer(self._model)
 
         self.model_name = model_name
 
