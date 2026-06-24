@@ -29,7 +29,7 @@ except ImportError:
         pass
 
 from agent.core.tee_logger import TeeLogger
-from agent.core.llm_manager import LLMManager, TwoBrainManager, MODELS
+from agent.core.llm_manager import LLMManager, TwoBrainManager, MODELS, FALLBACK_CHAIN
 from agent.core.session_manager import SessionManager
 from agent.core.concise_logger import ConciseStepReporter
 from agent.core.watchdog import RunWatchdog
@@ -704,21 +704,17 @@ class AgentOrchestrator:
 
         _session_context = (
             f"\n\n=== THIS SESSION ==="
-            f"\nBudget this session          : {max_experiments} experiments"
-            f"\nTotal experiments ever run   : {_total_ever} (across all sessions)"
-            f"\nFamilies tried (all sessions): "
-            f"{_tried_families if _tried_families else 'none yet'}"
-            f"\nFamilies NOT tried yet       : "
-            f"{_not_tried if _not_tried else 'all tried!'}"
-            f"\nCurrent best                 : {_best_f1:.4f}  ({_best_exp})"
+            f"\nBudget this session        : {max_experiments} experiments"
+            f"\nTotal experiments run so far: {_total_ever} (across all sessions)"
+            f"\nCurrent best F1            : {_best_f1:.4f}  ({_best_exp})"
+            f"\nRead the leaderboard for full history."
             f"\n"
             f"\nINSTRUCTIONS FOR THIS SESSION:"
             f"\n1. Read the leaderboard first (call read_leaderboard)."
-            f"\n2. Try architecture families from the NOT TRIED list first."
-            f"\n3. Do not repeat experiments already in the leaderboard."
-            f"\n4. You MUST run at least {self._min_experiments_before_stop} new experiments"
+            f"\n2. Do not repeat experiments already in the leaderboard."
+            f"\n3. You MUST run at least {self._min_experiments_before_stop} new experiments"
             f"\n   this session before you are allowed to call final_answer."
-            f"\n5. If you find a good model early, do NOT stop --"
+            f"\n4. If you find a good model early, do NOT stop --"
             f"\n   instead write: 'X works well. Now I will explore Y to confirm"
             f"\n   X is the true best and not just the first thing that worked.'"
             f"\n"
@@ -779,30 +775,59 @@ class AgentOrchestrator:
                     litellm.APIError,
                 )
                 if isinstance(exc, _api_errors):
-                    self.logger.warning(
-                        f"[Fallback] {type(exc).__name__}: {str(exc)[:100]}"
-                    )
-                    fallback = self.llm.auto_fallback_chain(
-                        chain=["gemini-flash", "groq-llama", "local-qwen"],
-                        test_each=True,
-                    )
-                    if fallback:
-                        # Swap model directly on the running agent — no loop restart
-                        self._agent.model = self.llm.get_model()
-                        self.model_name   = fallback
-                        self.logger.agent(
-                            f"[Fallback] Switched to {fallback} — "
-                            f"continuing without restart"
+                    # ── Use FALLBACK_CHAIN for rate-limit auto-switch ──────────
+                    _next_model = FALLBACK_CHAIN.get(self.model_name)
+                    if _next_model:
+                        self.logger.warning(
+                            f"[Fallback] {type(exc).__name__} on {self.model_name!r} — "
+                            f"auto-switching to {_next_model!r} via FALLBACK_CHAIN"
                         )
                         print(
-                            f"\n[Fallback] Switched to {fallback} — agent continues.",
+                            f"\n[Fallback] Rate-limit hit on {self.model_name!r}. "
+                            f"Auto-switching to {_next_model!r}.",
                             flush=True,
                         )
-                        _swapped = True
-                    else:
-                        self.logger.error(
-                            "[Fallback] All fallback models failed — raising."
+                        try:
+                            self.llm.switch_model(_next_model)
+                            self._agent.model = self.llm.get_model()
+                            self.model_name   = _next_model
+                            self.logger.agent(
+                                f"[Fallback] Switched to {_next_model!r} — "
+                                f"continuing without restart"
+                            )
+                            _swapped = True
+                        except Exception as _sw_exc:
+                            self.logger.error(
+                                f"[Fallback] Switch to {_next_model!r} failed: {_sw_exc}. "
+                                f"Trying full auto_fallback_chain."
+                            )
+
+                    if not _swapped:
+                        # Chain lookup failed or switch errored — try full chain
+                        self.logger.warning(
+                            f"[Fallback] {type(exc).__name__}: {str(exc)[:100]}"
                         )
+                        fallback = self.llm.auto_fallback_chain(
+                            chain=["gemini-flash", "groq-llama", "local-qwen"],
+                            test_each=True,
+                        )
+                        if fallback:
+                            # Swap model directly on the running agent — no loop restart
+                            self._agent.model = self.llm.get_model()
+                            self.model_name   = fallback
+                            self.logger.agent(
+                                f"[Fallback] Switched to {fallback} — "
+                                f"continuing without restart"
+                            )
+                            print(
+                                f"\n[Fallback] Switched to {fallback} — agent continues.",
+                                flush=True,
+                            )
+                            _swapped = True
+                        else:
+                            self.logger.error(
+                                "[Fallback] All fallback models failed — raising."
+                            )
             except Exception as swap_exc:
                 self.logger.error(
                     f"[Fallback] Swap attempt failed: {swap_exc}"

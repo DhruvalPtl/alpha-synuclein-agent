@@ -48,9 +48,9 @@ MODELS: Dict[str, str] = {
     "openrouter":     "openrouter/meta-llama/llama-3.3-70b",
     # ── Ollama (local, http://localhost:11434) ───────────────────────
     "local-qwen":         "ollama/qwen2.5-coder:32b",
+    "local-qwen3.6": "ollama/qwen3.6:27b",
     "local-deepseek":     "ollama/deepseek-r1:14b",
     "local-qwen3-coder":  "ollama/qwen3-coder:30b",
-    "local-qwen3":        "ollama/qwen3.6:27b",
     # ── LM Studio (local, http://localhost:1234/v1) ──────────────────
     # In LM Studio: enable the local server, load any model, then
     # set MODEL_NAME to one of the keys below that matches what you
@@ -91,6 +91,17 @@ DEFAULT_FALLBACK_CHAIN: List[str] = [
     "groq-llama",    # Groq cloud — generous free tier
     "gemini-flash",  # Google cloud — free tier
 ]
+
+# ── Rate-limit auto-fallback chain ────────────────────────────────────────────
+# When a RateLimitError hits the current model, automatically switch to the
+# next model in this chain.  Keys are model names from the MODELS registry.
+FALLBACK_CHAIN: Dict[str, str] = {
+    "groq-llama":        "gemini-flash",
+    "groq-mixtral":      "gemini-flash",
+    "gemini-flash":      "local-qwen3-coder",
+    "gemini-flash-lite": "local-qwen3-coder",
+    "local-qwen3-coder": "local-qwen3.6",
+}
 
 _MASTER_LOG_DIR = Path("master_log")
 _TOKEN_BUDGET_PATH = _MASTER_LOG_DIR / "token_budget.json"
@@ -156,13 +167,24 @@ class _ThinkingTokenStripper:
         import re
         response = self._model(messages, **kwargs)
         if hasattr(response, "content") and isinstance(response.content, str):
-            cleaned = re.sub(
+            original_content = response.content
+            stripped = re.sub(
                 r"<think>.*?</think>",
                 "",
-                response.content,
+                original_content,
                 flags=re.DOTALL,
             ).strip()
-            response.content = cleaned
+
+            # Safety check — if stripping removed everything useful, return original
+            if len(stripped) < 20:
+                print(
+                    f"[ThinkingStripper] WARNING: stripped content too short "
+                    f"({len(stripped)} chars), returning original"
+                )
+                # Do NOT modify response — return as-is
+            else:
+                response.content = stripped
+
         # Mirror token counters so LLMManager tracking still works
         self.last_input_token_count  = getattr(
             self._model, "last_input_token_count", 0)
