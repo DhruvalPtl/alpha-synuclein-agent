@@ -270,16 +270,22 @@ class _ResponseParserWrapper:
 
         fix_prompt = (
             "You are a response formatter for an ML research agent.\n"
-            "Your ONLY job: reformat the text below into exactly this structure:\n\n"
+            "Your ONLY job: read the text below and extract the intended Python action, "
+            "then format it into exactly this structure:\n\n"
             "Thought: <one sentence about what action to take>\n"
             "<code>\n"
-            "# python code that calls one of: read_leaderboard, audit_code,\n"
-            "# run_experiment, search_arxiv_papers, web_search\n"
+            "<valid python code here>\n"
             "</code>\n\n"
             "Rules:\n"
-            "- If the text contains Python code, preserve it inside <code>...</code>.\n"
-            "- If the text is empty or unclear, output a read_leaderboard call.\n"
-            "- Output NOTHING except the formatted Thought: + <code> block.\n\n"
+            "1. If the text contains Python code, preserve it exactly inside <code>...</code>.\n"
+            "2. If the text only contains <think> blocks, read the thoughts to determine the intent, "
+            "and write the corresponding Python code to execute that intent.\n"
+            "3. If you cannot determine the intent, output EXACTLY this fallback (nothing else):\n"
+            "Thought: I will check the leaderboard.\n"
+            "<code>\n"
+            "read_leaderboard(top_n=10)\n"
+            "</code>\n\n"
+            "Output NOTHING except the formatted Thought: + <code> block.\n\n"
             f"Text to reformat:\n{raw_text or '[empty — main model produced no output]'}\n"
         )
 
