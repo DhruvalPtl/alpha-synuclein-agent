@@ -147,57 +147,114 @@ _GEMINI_BACKOFF_DELAYS = _BACKOFF_DELAYS
 
 
 # ── Thinking-token stripper (Ollama qwen3 / deepseek-r1) ──────────────────────
-# Models like qwen3-coder and deepseek-r1 emit <think>...</think> blocks before
-# their actual reply.  smolagents CodeAgent looks for "Code:" in the content;
-# if it hits the thinking block first it gets confused and loops without running
-# any experiments.  This wrapper silently strips those tokens before the
-# response reaches smolagents.
+# qwen3 and deepseek-r1 emit <think>...</think> blocks before their actual reply.
+# Sometimes the model outputs ONLY a thinking block with nothing after it — this
+# causes smolagents CodeAgent to silently produce empty steps and loop forever.
+#
+# This wrapper:
+#   1. Strips <think>...</think> so smolagents can parse Thought:/Code: cleanly.
+#   2. When the response is thinking-only (nothing after </think>), retries the
+#      call once with an explicit nudge message asking for the action code.
+#      Thinking stays fully ENABLED — we never suppress it at source.
 
 class _ThinkingTokenStripper:
-    """Transparent wrapper that strips <think>…</think> from Ollama responses."""
+    """
+    Transparent wrapper that strips <think>…</think> from Ollama responses
+    and auto-retries when the model forgets to output its action code.
+    """
+
+    _THINK_RE = __import__("re").compile(r"<think>.*?</think>", __import__("re").DOTALL)
 
     def __init__(self, model):
         self._model = model
-        # Expose attributes smolagents introspects on the model object
         self.model_id                  = getattr(model, "model_id", "")
         self.last_input_token_count    = 0
         self.last_output_token_count   = 0
 
-    def __call__(self, messages, **kwargs):
+    # ── helpers ────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _strip(text: str) -> str:
         import re
+        return re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+
+    # ── main call ──────────────────────────────────────────────────────────────
+
+    def __call__(self, messages, **kwargs):
         response = self._model(messages, **kwargs)
-        if hasattr(response, "content") and isinstance(response.content, str):
-            original_content = response.content
-            stripped = re.sub(
-                r"<think>.*?</think>",
-                "",
-                original_content,
-                flags=re.DOTALL,
-            ).strip()
 
-            # Safety check — if stripping removed everything useful, don't return
-            # the raw <think> block (smolagents can't parse it and silently loops).
-            # Instead, replace with an explicit nudge so the agent takes an action.
-            if len(stripped) < 20:
+        if not (hasattr(response, "content") and isinstance(response.content, str)):
+            self._sync_counters()
+            return response
+
+        raw = response.content
+        stripped = self._strip(raw)
+
+        print(
+            f"[ThinkingStripper] raw={len(raw)}chars  "
+            f"stripped={len(stripped)}chars  "
+            f"has_think={'<think>' in raw}"
+        )
+
+        if len(stripped) >= 20:
+            # Normal case — thinking block + action code present
+            response.content = stripped
+            self._sync_counters()
+            return response
+
+        # ── thinking-only response → retry with nudge ─────────────────────────
+        print(
+            "[ThinkingStripper] Model output only thinking, no action code. "
+            "Retrying with nudge..."
+        )
+        nudge_messages = list(messages) + [
+            # Feed the model's own thinking back as its assistant turn so far
+            {"role": "assistant", "content": raw},
+            # Ask it to now output the actual action
+            {
+                "role": "user",
+                "content": (
+                    "You have finished thinking. Now output your action "
+                    "in the required format:\n\n"
+                    "Thought: <one sentence summary of what you will do>\n"
+                    "Code:\n```py\n<your python code here>\n```<end_code>\n\n"
+                    "Do NOT output any more thinking. Output the Code: block now."
+                ),
+            },
+        ]
+        try:
+            response2 = self._model(nudge_messages, **kwargs)
+            if hasattr(response2, "content") and isinstance(response2.content, str):
+                stripped2 = self._strip(response2.content)
                 print(
-                    f"[ThinkingStripper] WARNING: stripped content too short "
-                    f"({len(stripped)} chars) — injecting fallback action nudge."
+                    f"[ThinkingStripper] Retry result: "
+                    f"raw={len(response2.content)}chars  stripped={len(stripped2)}chars"
                 )
-                response.content = (
-                    "Thought: I need to continue with the task.\n"
-                    "Code:\n```py\n"
-                    "print('Continuing...')\n"
-                    "```"
-                )
-            else:
-                response.content = stripped
+                if len(stripped2) >= 20:
+                    response2.content = stripped2
+                    self._sync_counters()
+                    return response2
+                # Retry also came back thinking-only — last resort fallback
+                print("[ThinkingStripper] Retry was also thinking-only. Using fallback.")
+        except Exception as exc:
+            print(f"[ThinkingStripper] Retry call failed: {exc}")
 
-        # Mirror token counters so LLMManager tracking still works
+        # Last-resort: inject a minimal valid action so smolagents doesn't loop
+        response.content = (
+            "Thought: I need to read the leaderboard and start experimenting.\n"
+            "Code:\n```py\n"
+            "result = read_leaderboard(top_n=10)\n"
+            "print(result)\n"
+            "```<end_code>"
+        )
+        self._sync_counters()
+        return response
+
+    def _sync_counters(self):
         self.last_input_token_count  = getattr(
             self._model, "last_input_token_count", 0)
         self.last_output_token_count = getattr(
             self._model, "last_output_token_count", 0)
-        return response
 
     def __getattr__(self, name):
         return getattr(self._model, name)
@@ -470,18 +527,6 @@ class LLMManager:
         # Ollama — local, no API key, custom base URL
         if provider == "ollama":
             kwargs.setdefault("api_base", "http://localhost:11434")
-            # Disable thinking tokens for qwen3 models at the source.
-            # Qwen3 supports think=False via extra_body to suppress <think> blocks.
-            # This is cleaner than post-hoc stripping and prevents empty-step loops.
-            _model_lower = model_id.lower()
-            if "qwen3" in _model_lower:
-                kwargs.setdefault("extra_body", {})
-                if isinstance(kwargs["extra_body"], dict):
-                    kwargs["extra_body"].setdefault("think", False)
-                self.logger.info(
-                    f"[LLMManager] Ollama qwen3 detected: setting think=False "
-                    f"to suppress <think> blocks at source."
-                )
 
         # LM Studio — OpenAI-compatible local server, no API key needed.
         # We use provider=openai with a custom api_base pointing to LM Studio.
