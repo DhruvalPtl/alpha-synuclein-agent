@@ -44,3 +44,9 @@ jupyter
 jupyterlab
 ipywidgets
 nbformat
+
+# ── V2 Multi-agent orchestration & memory ─────────────────────────────────────
+langgraph
+langchain-openai
+chromadb
+
