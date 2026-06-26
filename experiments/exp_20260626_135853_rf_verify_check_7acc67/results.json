@@ -1,0 +1,12 @@
+{
+  "exp_id": "exp_20260626_135853_rf_verify_check_7acc67",
+  "architecture": "rf_verify_check",
+  "hypothesis": "Legacy experiment run via compatibility wrapper with hyperparams: {\"n_estimators\": 10}",
+  "timestamp": "20260626_135853",
+  "train_time_seconds": 0.013879899983294308,
+  "val_f1_macro": 0.301123,
+  "val_mcc": 0.226001,
+  "val_accuracy": 0.316667,
+  "model_params_count": 0,
+  "status": "success"
+}

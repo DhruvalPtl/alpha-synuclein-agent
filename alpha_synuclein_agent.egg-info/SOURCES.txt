@@ -3,10 +3,14 @@ agent/__init__.py
 agent/core/__init__.py
 agent/core/concise_logger.py
 agent/core/env_config.py
+agent/core/graph.py
 agent/core/llamafile_manager.py
 agent/core/llm_manager.py
+agent/core/memory.py
+agent/core/oracle.py
 agent/core/orchestrator.py
 agent/core/platform_detector.py
+agent/core/sandbox.py
 agent/core/session_manager.py
 agent/core/tee_logger.py
 agent/core/watchdog.py
@@ -26,6 +30,7 @@ agent/tools/experiment_runner.py
 agent/tools/harness_template.py
 agent/tools/leaderboard_tool.py
 agent/tools/rebuild_leaderboard.py
+agent/tools/search_logger.py
 alpha_synuclein_agent.egg-info/PKG-INFO
 alpha_synuclein_agent.egg-info/SOURCES.txt
 alpha_synuclein_agent.egg-info/dependency_links.txt

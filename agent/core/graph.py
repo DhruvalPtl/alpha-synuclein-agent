@@ -1,23 +1,26 @@
 """
 agent/core/graph.py
 ────────────────────────────────────────────────────────────────────────────
-The State-Based Execution Graph using LangGraph.
-Orchestrates the Lead Researcher, Coder, Reviewer, and Sandbox.
+DEPRECATED — this file was part of the V2 LangGraph experiment and is no
+longer used by AgentOrchestrator.  It is kept for reference only.
+
+The active orchestration loop is in agent/core/orchestrator.py.
 """
 
-import os
-from typing import TypedDict, Annotated
-from pathlib import Path
-from langgraph.graph import StateGraph, END
-from langchain_openai import ChatOpenAI
+# All LangGraph imports are guarded so this file never causes import errors
+# when imported transitively.
+try:
+    import os
+    from typing import TypedDict, Annotated
+    from pathlib import Path
+    from langgraph.graph import StateGraph, END
+    from langchain_openai import ChatOpenAI
+    from agent.core.memory import PersistentMemory
+    from agent.prompts.system_prompt import SYSTEM_PROMPT
+    _GRAPH_AVAILABLE = True
+except ImportError:
+    _GRAPH_AVAILABLE = False
 
-from agent.core.memory import PersistentMemory
-from agent.tools.experiment_runner import run_experiment_tool
-from agent.prompts.system_prompt import (
-    LEAD_RESEARCHER_PROMPT,
-    BIOINFORMATICS_CODER_PROMPT,
-    SYNTAX_REVIEWER_PROMPT
-)
 
 class AgentState(TypedDict):
     hypothesis: str
@@ -27,14 +30,49 @@ class AgentState(TypedDict):
     sandbox_results: str
     error_count: int
 
-def get_llm(model_name: str = "qwen2.5:1.5b-instruct", temperature: float = 0.2):
+def get_llm(model_name: str = None, temperature: float = 0.2):
     """
-    Returns an LLM client pointing to the local OpenAI-compatible server (Ollama/vLLM).
+    Returns an LLM client pointing to the local OpenAI-compatible server or cloud provider.
+    Restores support for multiple APIs (Groq, Gemini, OpenRouter, Mistral, Cerebras, Ollama).
     """
+    from agent.core.llm_manager import MODELS
+    
+    if model_name is None:
+        model_name = os.environ.get("ACTIVE_MODEL", "local-qwen")
+        
+    model_id = MODELS.get(model_name, model_name)
+    provider = model_id.split("/")[0] if "/" in model_id else "ollama"
+    actual_model = model_id.split("/", 1)[1] if "/" in model_id else model_id
+    
+    # Defaults for local ollama
     base_url = os.environ.get("OPENAI_API_BASE", "http://127.0.0.1:11434/v1")
     api_key = os.environ.get("OPENAI_API_KEY", "ollama")
+    
+    if provider == "groq":
+        base_url = "https://api.groq.com/openai/v1"
+        api_key = os.environ.get("GROQ_API_KEY", "")
+    elif provider == "openrouter":
+        base_url = "https://openrouter.ai/api/v1"
+        api_key = os.environ.get("OPENROUTER_API_KEY", "")
+    elif provider == "mistral":
+        base_url = "https://api.mistral.ai/v1"
+        api_key = os.environ.get("MISTRAL_API_KEY", "")
+    elif provider == "cerebras":
+        base_url = "https://api.cerebras.ai/v1"
+        api_key = os.environ.get("CEREBRAS_API_KEY", "")
+    elif provider == "gemini":
+        base_url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+        api_key = os.environ.get("GEMINI_API_KEY", "")
+    elif provider == "openai":
+        if "lmstudio" in model_name or "llamafile" in model_name:
+            base_url = "http://127.0.0.1:8080/v1"
+            api_key = "local"
+        else:
+            base_url = "https://api.openai.com/v1"
+            api_key = os.environ.get("OPENAI_API_KEY", "")
+            
     return ChatOpenAI(
-        model=model_name,
+        model=actual_model,
         temperature=temperature,
         base_url=base_url,
         api_key=api_key

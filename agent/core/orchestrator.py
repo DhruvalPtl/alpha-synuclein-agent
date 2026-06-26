@@ -38,6 +38,11 @@ from agent.tools.experiment_runner import ExperimentRunnerTool
 from agent.tools.leaderboard_tool import LeaderboardTool
 from agent.tools.audit_tool import AuditTool
 from agent.tools.arxiv_tool import ArxivTool
+try:
+    from agent.tools.memory_tool import SearchMemoryTool, CheckDuplicateTool
+    _HAS_MEMORY_TOOLS = True
+except Exception:
+    _HAS_MEMORY_TOOLS = False
 
 _LEADERBOARD_PATH = Path("master_log/leaderboard.json")
 _STATE_PATH       = Path("master_log/orchestrator_state.json")
@@ -175,6 +180,17 @@ class AgentOrchestrator:
             AuditTool(),
             _arxiv,
         ]
+
+        # ── Memory tools (ChromaDB semantic recall + novelty gate) ─────────────
+        if _HAS_MEMORY_TOOLS:
+            try:
+                self.tools.append(SearchMemoryTool())
+                self.tools.append(CheckDuplicateTool())
+                self.logger.info("[Orchestrator] SearchMemoryTool + CheckDuplicateTool added.")
+            except Exception as _mem_exc:
+                self.logger.warning(
+                    f"[Orchestrator] Memory tools init failed (ChromaDB unavailable?): {_mem_exc}"
+                )
 
         try:
             from smolagents import DuckDuckGoSearchTool
