@@ -33,7 +33,10 @@ have shown promise on similar small protein datasets.
   a model predicting only the majority class scores ~0.78 accuracy \
   while learning nothing.
 - Call audit_code before every run_experiment.
-- You write ONLY model_code: one function with this EXACT signature:
+- You write ONLY model_code: Python code that defines `build_and_train`:
+
+      # (Optional) You MAY define helper classes/functions out here
+      # in the global scope if you need a custom wrapper, so they can be pickled!
 
       def build_and_train(df_train, df_val, class_weights):
           # all imports inside the function
@@ -44,6 +47,7 @@ have shown promise on similar small protein datasets.
           ...
           return fitted_model
 
+  CRITICAL: Do NOT define classes or predict wrappers *inside* `build_and_train` and attach them to the model. Python's `pickle` will crash with `Can't pickle local object`. Define custom wrappers in the global scope!
   The model's .predict(df) receives the same DataFrame format.
   Never load files. Never reference test.pkl in any form. \
   The harness handles all evaluation and file writing.

@@ -117,11 +117,13 @@ class ExperimentRunnerTool(_SmolTool):
     description = (
         "Run a machine learning experiment on the alpha-synuclein dataset.\n"
         "Provide model_code that defines:\n"
+        "    # Custom classes MUST be defined out here in global scope!\n"
         "    def build_and_train(df_train, df_val, class_weights):\n"
         "df_train and df_val are DataFrames with columns:\n"
         "    ['sequence', 'concentration', 'label_int', 'label_str']\n"
         "class_weights is a dict {0: w0, 1: w1, 2: w2, 3: w3}.\n"
         "Returns a fitted model with .predict(df) -> np.ndarray.\n"
+        "CRITICAL: Do not define classes/wrappers *inside* build_and_train, it breaks pickling.\n"
         "All imports must be inside build_and_train. Never load files.\n"
         "The harness evaluates on the val set and writes results.json."
     )
