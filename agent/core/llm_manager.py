@@ -514,10 +514,14 @@ class _MessageStandardizer:
         res = self._model.generate(messages, **kwargs)
         self._sync_counters()
         
+        # Guard against None content which crashes both logger and smolagents parser
+        if getattr(res, "content", None) is None:
+            res.content = ""
+            
         # Log response with raw thoughts if available
-        raw_content = getattr(res, "raw_content", None)
-        content = getattr(res, "content", "") if hasattr(res, "content") else str(res)
-        if raw_content is None:
+        raw_content = getattr(res, "raw_content", "") or ""
+        content = getattr(res, "content", "") or ""
+        if not raw_content:
             raw_content = content
             
         _log_llm_call(self.model_id, messages, raw_content, content)
